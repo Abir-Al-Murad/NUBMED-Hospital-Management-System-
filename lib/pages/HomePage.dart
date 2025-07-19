@@ -23,37 +23,6 @@ class Homepage extends StatefulWidget {
 class _HomepageState extends State<Homepage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  Future<void> addLabTestData() async {
-    CollectionReference labTests = firestore.collection('labtests');
-
-    final labTestData = [
-      {
-        "testName": "Complete Blood Count (CBC)",
-        "description": "Measures red cells, white cells, hemoglobin, hematocrit, and platelets in blood.",
-        "sampleType": "Blood",
-        "normalRange": "Varies per component",
-        "price": 500,
-        "preparation": "No special preparation needed",
-        "department": "Pathology",
-        "turnaroundTime": "24 hours"
-      },
-      {
-        "testName": "Fasting Blood Sugar",
-        "description": "Measures blood glucose after fasting for 8-12 hours.",
-        "sampleType": "Blood",
-        "normalRange": "70-110 mg/dL",
-        "price": 300,
-        "preparation": "Fasting required for 8-12 hours",
-        "department": "Biochemistry",
-        "turnaroundTime": "4 hours"
-      },
-      // ... more test data
-    ];
-
-    for (var test in labTestData) {
-      await labTests.add(test);
-    }
-  }
 
   @override
   void initState() {
@@ -67,6 +36,7 @@ class _HomepageState extends State<Homepage> {
           padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               CarouselSlider(items: [
                 Card(
@@ -88,7 +58,7 @@ class _HomepageState extends State<Homepage> {
               const SizedBox(height: 20),
               Text(
                 "Services",
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 22,color: Colors.black),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19,color: Colors.black),
               ),
               const SizedBox(height: 10),
               GridView.count(
@@ -163,7 +133,8 @@ class _HomepageState extends State<Homepage> {
                     label: "Health Tips",
                     color: Colors.green,
                     onTap: () {
-                      CheckAdmin.isAdminUser?Navigator.pushNamed(context, AdminHealthTipsPage.name) : Navigator.pushNamed(context, HealthTips.name);
+                      print(CheckAdmin.isAdminUser);
+                      CheckAdmin.isAdminUser == true?Navigator.pushNamed(context, AdminHealthTipsPage.name) : Navigator.pushNamed(context, HealthTips.name);
                     },
                   ),
                   buildGridItem(
@@ -198,25 +169,32 @@ Widget buildGridItem({
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8), // slightly reduced padding
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: color.withOpacity(1),
-              child: Icon(icon, size: 28, color: Colors.white),
+            Flexible(
+              child: CircleAvatar(
+                radius: 21,
+                backgroundColor: color,
+                child: Icon(icon, size: 24, color: Colors.white),
+              ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              maxLines: 1,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.w400,
-                fontSize: 15,
-                overflow: TextOverflow.ellipsis,
-                color: Colors.black,
+            const SizedBox(height: 6),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    color: Colors.black,
+                  ),
+                ),
               ),
             ),
           ],
@@ -225,3 +203,4 @@ Widget buildGridItem({
     ),
   );
 }
+

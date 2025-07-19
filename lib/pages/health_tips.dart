@@ -16,7 +16,7 @@ class HealthTips extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Health Tips'),
+        title:  Text('Health Tips'),
         centerTitle: true,
       ),
       body: FutureBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(

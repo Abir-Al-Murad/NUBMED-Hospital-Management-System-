@@ -37,6 +37,8 @@ dependencies:
   firebase_core:
   firebase_auth:
   firebase_cloud_firestore:
+  firebase_storage:   #new
+  firebase_analytics:  #new
   cached_network_image:
   carousel_slider:
   google_fonts:
@@ -44,11 +46,15 @@ dependencies:
   firebase_messaging:
   table_calendar:
   intl:
+  image_picker:
+  http:
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

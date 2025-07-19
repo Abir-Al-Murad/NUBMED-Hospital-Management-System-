@@ -27,27 +27,32 @@ class Profile extends StatelessWidget {
            }
 
            final data = snapshot.data!.data()!;
-           return Padding(
-             padding: const EdgeInsets.all(16.0),
-             child: Column(
-               crossAxisAlignment: CrossAxisAlignment.center,
-               children: [
 
-                 CircleAvatar(
-                   radius: 70,
-                 ),
-
-                 Text("${data['name'] ?? 'N/A'}", style: const TextStyle(fontSize: 18,fontWeight: FontWeight.w700)),
-                 Text("Email: ${data['email'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
-                 Text("Phone: ${data['phone'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
-                 Text("Student ID: ${data['student_id'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
-                 Text("Blood Group: ${data['blood_group'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
-                 FilledButton(onPressed: ()async{
-
-                   await FirebaseAuth.instance.signOut();
-                   Navigator.pushNamedAndRemoveUntil(context, Signinscreen.name, (predicate)=>false);
-                 }, child: Text("LogOut"))
-               ],
+           return SingleChildScrollView(
+             child: Padding(
+               padding: const EdgeInsets.all(16.0),
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.center,
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+             
+                   CircleAvatar(
+                     radius: 70,
+                     backgroundImage: data['photo_url']!=""? NetworkImage(data['photo_url']):AssetImage('assets/blank person.jpg'),
+                   ),
+             
+                   Text("${data['name'] ?? 'N/A'}", style: const TextStyle(fontSize: 18,fontWeight: FontWeight.w700)),
+                   Text("Email: ${data['email'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
+                   Text("Phone: ${data['phone'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
+                   Text("Student ID: ${data['student_id'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
+                   Text("Blood Group: ${data['blood_group'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
+                   FilledButton(onPressed: ()async{
+             
+                     await FirebaseAuth.instance.signOut();
+                     Navigator.pushNamedAndRemoveUntil(context, Signinscreen.name, (predicate)=>false);
+                   }, child: Text("LogOut"))
+                 ],
+               ),
              ),
            );
          },

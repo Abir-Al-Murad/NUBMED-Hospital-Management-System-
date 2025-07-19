@@ -1,7 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:nubmed/pages/HomePage.dart';
 import 'package:nubmed/pages/Profile.dart';
 import 'package:nubmed/utils/Color_codes.dart';
+import 'package:nubmed/utils/_fetchImage.dart';
 
 class WidgetTree extends StatefulWidget {
   WidgetTree({super.key});
@@ -13,19 +16,36 @@ class WidgetTree extends StatefulWidget {
 }
 
 class _WidgetTreeState extends State<WidgetTree> {
+
   List screens = [
     Homepage(),
     Homepage(),
     Homepage(),
   ];
+  String? photoUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    FetchImage.fetchImageUrl(uid).then((url) {
+      if (url != null) {
+        setState(() {
+          photoUrl = url;
+        });
+      }
+    });
+  }
+
 
   int i = 0;
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser!.uid;
+
     return Scaffold(
       appBar: AppBar(
-        // title: Image.asset("assets/NUBMED logo.png",height: 100,fit: BoxFit.contain,),
         title: Text("NUBMED",style: TextStyle(letterSpacing: 1.7),),
         actions: [
           Padding(
@@ -54,9 +74,10 @@ class _WidgetTreeState extends State<WidgetTree> {
                   ),
                   child: CircleAvatar(
                     radius: 20,
-                    backgroundImage: NetworkImage(
-                      "https://imgs.search.brave.com/HKfaFyIPjOR3sF0namUadB5xtbJR-ssRhPgaOq5RTOg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/cGl4YWJheS5jb20v/cGhvdG8vMjAxNC8w/OS8xNy8xMS80Ny9t/YW4tNDQ5NDA0XzY0/MC5qcGc",
-                    ),
+                    backgroundImage: photoUrl != null
+                        ? NetworkImage(photoUrl!)
+                        : AssetImage("assets/blank person.jpg") as ImageProvider,
+
                   ),
                 ),
               ),
@@ -81,4 +102,5 @@ class _WidgetTreeState extends State<WidgetTree> {
       ),
     );
   }
+
 }

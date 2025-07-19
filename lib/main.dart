@@ -12,32 +12,41 @@ import 'package:nubmed/pages/health_tips.dart';
 import 'package:nubmed/pages/medicine_page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 
+import 'firebase_options.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // ✅ This is required for web!
+  );
   await Firebase.initializeApp();
   runApp(NUBMED());
 }
 
 class NUBMED extends StatelessWidget {
-  NUBMED({super.key});
+  const NUBMED({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-
-        // scaffoldBackgroundColor:  Color(0xff74E291),
-        // scaffoldBackgroundColor: Colors.white,
         appBarTheme: AppBarTheme(
           color: Color_codes.meddle,
           shadowColor: Colors.black,
-          titleTextStyle: TextStyle(color: Colors.white,fontSize: 22,fontWeight: FontWeight.w700),
-
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontSize: 22, // use .sp
+            fontWeight: FontWeight.w700,
+          ),
         ),
         textTheme: GoogleFonts.poppinsTextTheme(
           TextTheme(
-            titleLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.w700,color: Colors.white),
+            titleLarge: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -45,7 +54,7 @@ class NUBMED extends StatelessWidget {
           fillColor: Colors.white,
           enabledBorder: OutlineInputBorder(
             borderSide: BorderSide.none,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(10), // .r for radius
           ),
           focusedBorder: OutlineInputBorder(
             borderSide: BorderSide.none,
@@ -77,11 +86,8 @@ class NUBMED extends StatelessWidget {
         HealthTips.name: (context) => HealthTips(),
         AdminMedicinePage.name: (context) => AdminMedicinePage(),
         AdminHealthTipsPage.name: (context) => AdminHealthTipsPage(),
-        // DoctorsProfilePage.name: (context) => DoctorsProfilePage(),
-
-
-
       },
     );
   }
 }
+
