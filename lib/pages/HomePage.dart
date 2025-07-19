@@ -1,13 +1,20 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:nubmed/Authentication/checkAdmin.dart';
+import 'package:nubmed/pages/Admin_Pages/AdminHealthTipsPage.dart';
+import 'package:nubmed/pages/Admin_Pages/AdminMedicine.dart';
 import 'package:nubmed/pages/AppoinmentPage.dart';
 import 'package:nubmed/pages/Blood_page.dart';
 import 'package:nubmed/pages/Doctor_Page.dart';
 import 'package:nubmed/pages/LabTestPage.dart';
+import 'package:nubmed/pages/health_tips.dart';
+import 'package:nubmed/pages/medicine_page.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
+
+  static String name = '/home-page';
 
   @override
   State<Homepage> createState() => _HomepageState();
@@ -63,13 +70,11 @@ class _HomepageState extends State<Homepage> {
             children: [
               CarouselSlider(items: [
                 Card(
-                  elevation: 5,
                   child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Image.asset("assets/wear_mask.jpg",fit: BoxFit.cover,width: double.maxFinite,)),
                 ),
                 Card(
-                  elevation: 5,
                   child: ClipRRect(
                       borderRadius: BorderRadiusGeometry.circular(10),
                       child: Image.asset("assets/mask.jpg",fit: BoxFit.cover,width: double.maxFinite,)),
@@ -81,9 +86,9 @@ class _HomepageState extends State<Homepage> {
                 viewportFraction: 1,
               )),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 "Services",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 22,color: Colors.black),
               ),
               const SizedBox(height: 10),
               GridView.count(
@@ -139,7 +144,7 @@ class _HomepageState extends State<Homepage> {
                     label: "Medicine",
                     color: Colors.brown,
                     onTap: () {
-                      // TODO: Medicine page navigation
+                      (CheckAdmin.isAdminUser)?Navigator.pushNamed(context, AdminMedicinePage.name): Navigator.pushNamed(context, MedicinePage.name);
                     },
                   ),
                   buildGridItem(
@@ -158,7 +163,7 @@ class _HomepageState extends State<Homepage> {
                     label: "Health Tips",
                     color: Colors.green,
                     onTap: () {
-                      // TODO: Health Tips page navigation
+                      CheckAdmin.isAdminUser?Navigator.pushNamed(context, AdminHealthTipsPage.name) : Navigator.pushNamed(context, HealthTips.name);
                     },
                   ),
                   buildGridItem(
@@ -169,7 +174,7 @@ class _HomepageState extends State<Homepage> {
                       // TODO: History page navigation
                     },
                   ),
-                  buildGridItem(icon: Icons.support_agent_rounded, label: "Support", color: Colors.black, onTap: (){})
+                  buildGridItem(icon: Icons.support_agent_rounded, label: "Support", color: Colors.blue, onTap: (){})
                 ],
               ),
             ],
@@ -191,7 +196,7 @@ Widget buildGridItem({
     borderRadius: BorderRadius.circular(16),
     child: Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -199,8 +204,8 @@ Widget buildGridItem({
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: color.withOpacity(0.1),
-              child: Icon(icon, size: 28, color: color),
+              backgroundColor: color.withOpacity(1),
+              child: Icon(icon, size: 28, color: Colors.white),
             ),
             const SizedBox(height: 10),
             Text(
@@ -208,9 +213,10 @@ Widget buildGridItem({
               maxLines: 1,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                overflow: TextOverflow.ellipsis
+                fontWeight: FontWeight.w400,
+                fontSize: 15,
+                overflow: TextOverflow.ellipsis,
+                color: Colors.black,
               ),
             ),
           ],

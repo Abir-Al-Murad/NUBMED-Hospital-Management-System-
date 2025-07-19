@@ -40,6 +40,10 @@ dependencies:
   cached_network_image:
   carousel_slider:
   google_fonts:
+  flutter_svg: ^2.2.0
+  firebase_messaging:
+  table_calendar:
+  intl:
 
 
 dev_dependencies:

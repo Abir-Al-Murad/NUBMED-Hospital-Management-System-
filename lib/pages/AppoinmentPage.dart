@@ -58,7 +58,7 @@ class Appointmentpage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Date: ${date.day}/${date.month}/${date.year}',),
-                    Text("Doctor Chamber Time: ${data['chamberTime']}"),
+                    Text("Visiting Time: ${data['visiting_time']}"),
 
                   ],
                 ),

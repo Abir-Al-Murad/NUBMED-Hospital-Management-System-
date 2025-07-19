@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:nubmed/Authentication/SignUp_and_Login.dart';
+import 'package:nubmed/Authentication/Sign_in.dart';
 
 class Profile extends StatelessWidget {
    Profile({super.key});
@@ -30,18 +30,22 @@ class Profile extends StatelessWidget {
            return Padding(
              padding: const EdgeInsets.all(16.0),
              child: Column(
-               crossAxisAlignment: CrossAxisAlignment.start,
+               crossAxisAlignment: CrossAxisAlignment.center,
                children: [
-                 Text("Name: ${data['name'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
+
+                 CircleAvatar(
+                   radius: 70,
+                 ),
+
+                 Text("${data['name'] ?? 'N/A'}", style: const TextStyle(fontSize: 18,fontWeight: FontWeight.w700)),
                  Text("Email: ${data['email'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
                  Text("Phone: ${data['phone'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
-                 Text("Student ID: ${data['studentId'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
-                 Text("Blood Group: ${data['bloodGroup'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
-                 ElevatedButton(onPressed: ()async{
+                 Text("Student ID: ${data['student_id'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
+                 Text("Blood Group: ${data['blood_group'] ?? 'N/A'}", style: const TextStyle(fontSize: 18)),
+                 FilledButton(onPressed: ()async{
 
                    await FirebaseAuth.instance.signOut();
-                   Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=>SignUp_and_Login()), (route)=>false );
-
+                   Navigator.pushNamedAndRemoveUntil(context, Signinscreen.name, (predicate)=>false);
                  }, child: Text("LogOut"))
                ],
              ),
@@ -51,3 +55,11 @@ class Profile extends StatelessWidget {
      );
    }
 }
+// if (userCredential.user != null) {
+// await _firestore.collection('users').doc(userCredential.user!.uid).set({
+// 'name':nameController.text.trim(),
+// 'email': emailController.text.trim(),
+// 'phone': phoneController.text.trim(),
+// 'bloodGroup': bloodGroup,
+// 'studentId': studentIdController.text.trim(),
+// });

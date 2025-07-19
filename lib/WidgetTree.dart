@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:nubmed/pages/HomePage.dart';
 import 'package:nubmed/pages/Profile.dart';
+import 'package:nubmed/utils/Color_codes.dart';
 
 class WidgetTree extends StatefulWidget {
   WidgetTree({super.key});
+
+  static String name = '/widget-tree';
 
   @override
   State<WidgetTree> createState() => _WidgetTreeState();
@@ -21,11 +24,9 @@ class _WidgetTreeState extends State<WidgetTree> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blueAccent,
       appBar: AppBar(
-        elevation: 10,
-        backgroundColor: Colors.white,
-        title: Image.asset("assets/NUBMED logo.png",height: 100,fit: BoxFit.contain,),
+        // title: Image.asset("assets/NUBMED logo.png",height: 100,fit: BoxFit.contain,),
+        title: Text("NUBMED",style: TextStyle(letterSpacing: 1.7),),
         actions: [
           Padding(
             padding: const EdgeInsets.all(6.0),
@@ -65,6 +66,7 @@ class _WidgetTreeState extends State<WidgetTree> {
       ),
       body: screens[i],
       bottomNavigationBar: BottomNavigationBar(
+        selectedItemColor: Color_codes.meddle,
         currentIndex: i,
         onTap: (index) {
           setState(() {

@@ -1,6 +1,6 @@
 import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:nubmed/utils/blood_group_class.dart';
 
 class BloodPage extends StatefulWidget {
   const BloodPage({super.key});
@@ -10,42 +10,54 @@ class BloodPage extends StatefulWidget {
 }
 
 class _BloodPageState extends State<BloodPage> {
-  bool finddonor = false;
   String? bloodGroup;
-  final bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: Text("Blood Support"),
+        centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-             Row(
-               children: [
-                 Expanded(
-                   child: DropdownButtonFormField<String>(
-                       value: bloodGroup,
-                       hint: Text("Select Blood Group"),
-                       decoration: InputDecoration(
-                         border: OutlineInputBorder(
-                           borderRadius: BorderRadius.circular(18)
-                         )
-                       ),
-                       items: bloodGroups.map((e)=>DropdownMenuItem<String>(
-                       value: e,
-                       child: Text(e),)).toList(), onChanged: (value){
-                         setState(() {
-                           bloodGroup = value;
-
-                         });
-                   }),
-                 ),
-                 const SizedBox(width: 10,),
-                 FilledButton(onPressed: (){}, child: Text("+ Donate Blood")),
-               ],
-             ),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: bloodGroup,
+                    hint: const Text("Select Blood Group"),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    items: Blood_Group_class.bloodGroups.map((e) => DropdownMenuItem<String>(
+                      value: e,
+                      child: Text(e),
+                    )).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        bloodGroup = value;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: FilledButton(
+                    onPressed: () {},
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    ),
+                    child: const FittedBox(
+                      child: Text("+ Donate Blood"),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             Expanded(
               child: StreamBuilder(stream: FirebaseFirestore.instance.collection('users').snapshots(), builder: (context,snapshot){
                 if(snapshot.connectionState == ConnectionState.waiting){
@@ -53,14 +65,15 @@ class _BloodPageState extends State<BloodPage> {
                   child: CircularProgressIndicator(),
                   );
                   }
-                if(!snapshot.hasData || snapshot.data!.docs.isEmpty){
+                final donors = snapshot.data!.docs.where((e){
+                  return bloodGroup == e['blood_group'];
+                }).toList();
+                if(!snapshot.hasData || snapshot.data!.docs.isEmpty || donors.isEmpty){
                   return const Center(
                   child: Text("No Donor Found"),
                   );
                   }
-                final donors = snapshot.data!.docs.where((e){
-                 return bloodGroup == e['bloodGroup'];
-                }).toList();
+
                 return ListView.builder(
                   itemCount: donors.length,
                   itemBuilder: (context, index) {
@@ -104,6 +117,9 @@ class _BloodPageState extends State<BloodPage> {
                                   donor['phone'] ?? '',
                                   style: const TextStyle(fontSize: 15),
                                 ),
+                                Text(
+                                  donor['email']??"",
+                                ),
                               ],
                             ),
                           ),
@@ -117,7 +133,7 @@ class _BloodPageState extends State<BloodPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  donor['bloodGroup'] ?? '',
+                                  donor['blood_group'] ?? '',
                                   style: const TextStyle(
                                     color: Colors.red,
                                     fontWeight: FontWeight.w600,
