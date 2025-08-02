@@ -6,10 +6,15 @@ import 'package:nubmed/Authentication/sign_up_screen.dart';
 import 'package:nubmed/WidgetTree.dart';
 import 'package:nubmed/pages/Admin_Pages/AdminHealthTipsPage.dart';
 import 'package:nubmed/pages/Admin_Pages/AdminMedicine.dart';
-import 'package:nubmed/pages/Doctors_Profile_page.dart';
+import 'package:nubmed/pages/Admin_Pages/addOrUpdate_doctor.dart';
+
+import 'package:nubmed/pages/Admin_Pages/available_doctor_list.dart';
+import 'package:nubmed/pages/Doctor_Page.dart';
 import 'package:nubmed/pages/HomePage.dart';
+import 'package:nubmed/pages/emergency.dart';
 import 'package:nubmed/pages/health_tips.dart';
 import 'package:nubmed/pages/medicine_page.dart';
+import 'package:nubmed/splash_screen.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 
 import 'firebase_options.dart';
@@ -29,8 +34,10 @@ class NUBMED extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: "NUBMED",
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Color_codes.middle_plus,primary: Color_codes.meddle),
         appBarTheme: AppBarTheme(
           color: Color_codes.meddle,
           shadowColor: Colors.black,
@@ -76,16 +83,21 @@ class NUBMED extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: Signinscreen.name,
+      home: const SplashScreen(),
       routes: {
         Signinscreen.name: (context) => Signinscreen(),
         Homepage.name: (context) => Homepage(),
+        DoctorPage.name: (context) => DoctorPage(),
         WidgetTree.name: (context) => WidgetTree(),
         SignUpScreen.name: (context) => SignUpScreen(),
         MedicinePage.name: (context) => MedicinePage(),
         HealthTips.name: (context) => HealthTips(),
         AdminMedicinePage.name: (context) => AdminMedicinePage(),
         AdminHealthTipsPage.name: (context) => AdminHealthTipsPage(),
+        AdminHealthTipsPage.name: (context) => AdminHealthTipsPage(),
+        AddOrUpdateNewDoctor.name:(context)=>AddOrUpdateNewDoctor(),
+        AvailableDoctorList.name:(context)=>AvailableDoctorList(),
+        EmergencyScreen.name:(context)=>EmergencyScreen(),
       },
     );
   }

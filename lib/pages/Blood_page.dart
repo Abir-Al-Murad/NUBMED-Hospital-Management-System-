@@ -1,176 +1,219 @@
-import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:nubmed/utils/blood_group_class.dart';
+import 'package:flutter/services.dart';
+import 'package:nubmed/utils/Color_codes.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BloodPage extends StatefulWidget {
-  const BloodPage({super.key});
+  final String bloodtype;
+
+  const BloodPage({super.key, required this.bloodtype});
 
   @override
   State<BloodPage> createState() => _BloodPageState();
 }
 
 class _BloodPageState extends State<BloodPage> {
-  String? bloodGroup;
+  Future<void> _makePhoneCall(String number) async {
+    if (number.isEmpty) {
+      _showSnackBar('No phone number available');
+      return;
+    }
+
+    try {
+      final Uri launchUri = Uri(scheme: 'tel', path: number);
+      await Clipboard.setData(ClipboardData(text: number));
+
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        _showSnackBar('Could not launch phone call to $number');
+      }
+    } on PlatformException catch (e) {
+      _showSnackBar('Error: ${e.message}');
+    } catch (e) {
+      _showSnackBar('An unexpected error occurred');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDonorItem(Map<String, dynamic> data) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: Colors.red.shade50,
+              child: Icon(Icons.person, size: 30, color: Colors.red),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data['name'] ?? 'Anonymous Donor',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (data['phone']?.isNotEmpty ?? false)
+                    Text(
+                      data['phone'],
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                  if (data['email']?.isNotEmpty ?? false)
+                    Text(
+                      data['email'],
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    data['blood_group'] ?? '',
+                    style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.call, size: 16),
+                  label: const Text("Call"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color_codes.deep_plus,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    elevation: 0,
+                  ),
+                  onPressed: () => _makePhoneCall(data['phone'] ?? ''),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.bloodtype, size: 48, color: Colors.red.shade300),
+          const SizedBox(height: 16),
+          Text(
+            "No ${widget.bloodtype} Donors Found",
+            style: const TextStyle(fontSize: 18),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Check back later or contact support",
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Blood Support"),
+        title: Text("${widget.bloodtype} Donors"),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: bloodGroup,
-                    hint: const Text("Select Blood Group"),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                    items: Blood_Group_class.bloodGroups.map((e) => DropdownMenuItem<String>(
-                      value: e,
-                      child: Text(e),
-                    )).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        bloodGroup = value;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: FilledButton(
-                    onPressed: () {},
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                    ),
-                    child: const FittedBox(
-                      child: Text("+ Donate Blood"),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Expanded(
-              child: StreamBuilder(stream: FirebaseFirestore.instance.collection('users').snapshots(), builder: (context,snapshot){
-                if(snapshot.connectionState == ConnectionState.waiting){
-                  return const Center(
-                  child: CircularProgressIndicator(),
-                  );
-                  }
-                final donors = snapshot.data!.docs.where((e){
-                  return bloodGroup == e['blood_group'];
-                }).toList();
-                if(!snapshot.hasData || snapshot.data!.docs.isEmpty || donors.isEmpty){
-                  return const Center(
-                  child: Text("No Donor Found"),
-                  );
-                  }
+        padding: const EdgeInsets.all(12.0),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .where('blood_group', isEqualTo: widget.bloodtype)
+              .where('donor', isEqualTo: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
 
-                return ListView.builder(
-                  itemCount: donors.length,
-                  itemBuilder: (context, index) {
-                    final donor = donors[index];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Colors.white, Color(0xFFFFCDD2)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.red.withOpacity(0.1),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                              // height:double.maxFinite,
-                            height:70,
-                              child: const Icon(Icons.person, size: 40, color: Colors.redAccent)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  donor['name'] ?? 'Unknown',
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  donor['phone'] ?? '',
-                                  style: const TextStyle(fontSize: 15),
-                                ),
-                                Text(
-                                  donor['email']??"",
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade100,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  donor['blood_group'] ?? '',
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  elevation: 2,
-                                  minimumSize: const Size(80, 32),
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Blood request sent to ${donor['name']}')),
-                                  );
-                                },
-                                child: const Text("Request", style: TextStyle(fontSize: 12)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    )
-                    ;
-                  },
-                );
-              }),
-            )
-          ],
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Failed to load donors",
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      snapshot.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            final donors = snapshot.data!.docs;
+
+            return ListView.builder(
+              itemCount: donors.length,
+              itemBuilder: (context, index) {
+                final donor = donors[index];
+                final data = donor.data() as Map<String, dynamic>;
+                return _buildDonorItem(data);
+              },
+            );
+          },
         ),
       ),
     );

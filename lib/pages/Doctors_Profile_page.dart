@@ -1,12 +1,18 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:nubmed/utils/Color_codes.dart';
+import 'package:nubmed/Authentication/checkAdmin.dart';
+import 'package:nubmed/Widgets/normalTitle.dart';
+import 'package:nubmed/model/doctor_model.dart';
+import 'package:nubmed/pages/Admin_Pages/addOrUpdate_doctor.dart';
+import 'package:nubmed/utils/specialization_list.dart';
 
 class DoctorsProfilePage extends StatefulWidget {
-  DoctorsProfilePage({super.key, required this.doctorsData,required this.index});
+  DoctorsProfilePage({
+    super.key,
+    required this.doctor
+  });
 
-  final Map<String, dynamic> doctorsData;
-  int index;
+  Doctor doctor;
   static String name = '/doctor-profile';
 
   @override
@@ -14,94 +20,120 @@ class DoctorsProfilePage extends StatefulWidget {
 }
 
 class _DoctorsProfilePageState extends State<DoctorsProfilePage> {
+  
   @override
   Widget build(BuildContext context) {
-    final data = widget.doctorsData;
-
+    final doctorInfo = widget.doctor;
     return Scaffold(
-      appBar: AppBar(title: const Text("Doctor Profile")),
+      appBar: AppBar(
+        title: const Text("Doctor Profile"),
+        actions: [
+          if (Administrator.isAdminUser)
+            IconButton(
+              onPressed: () async {
+                final updatedDoctor = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddOrUpdateNewDoctor(doctor: doctorInfo),
+                  ),
+                );
+
+                if (updatedDoctor != null) {
+                  setState(() {
+                    widget.doctor = updatedDoctor; // Update with the returned doctor
+                  });
+                  Navigator.pop(context,updatedDoctor);
+                }
+              },
+              icon: const Icon(Icons.edit_note, color: Colors.white),
+            ),
+        ],
+      ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image with Hero
             Hero(
-              tag: "${data['name']}${widget.index}",
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: CachedNetworkImage(
-                  imageUrl: data['image_url'] ?? '',
-                  placeholder: (context, url) => Container(
-                    height: 220,
-                    color: Colors.grey[300],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 220,
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.broken_image_rounded,
-                          size: 60, color: Colors.grey),
+              tag: "doctor_${doctorInfo.id}",
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CachedNetworkImage(
+                    imageUrl: doctorInfo.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 250,
+                      placeholder: (context,x){
+                        return CircularProgressIndicator();
+                      },
+                      errorWidget: (context, error, stackTrace) {
+                        return Image.asset(
+                          "assets/blank person.jpg",
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: 250,
+                        );
+                      },
                     ),
                   ),
-                  fit: BoxFit.fitHeight,
-                  height: 250,
-                  width: double.infinity,
-                ),
-              ),
             ),
             const SizedBox(height: 24),
 
             // Name
-            _buildTitle("Name"),
-            Text(data['name'] ?? '', style: _valueStyle()),
+            Normal_Title(title: "Name"),
+            Text(doctorInfo.name, style: _valueStyle()),
 
             const SizedBox(height: 16),
 
             // Degree
-            _buildTitle("Degree"),
-            Text(data['degree'] ?? '', style: _valueStyle()),
+            Normal_Title(title: "Degree"),
+            Text(doctorInfo.degree, style: _valueStyle()),
 
             const SizedBox(height: 16),
 
             // Designation
-            _buildTitle("Designation"),
-            Text(data['designation'] ?? '', style: _valueStyle()),
+            Normal_Title(title: "Designation"),
+            Text(doctorInfo.designation, style: _valueStyle()),
 
             const SizedBox(height: 16),
 
             // Hospital
-            _buildTitle("Hospital"),
-            Text(data['hospital'] ?? '', style: _valueStyle()),
+            Normal_Title(title: "Hospital"),
+            Text(doctorInfo.hospital, style: _valueStyle()),
 
             const SizedBox(height: 16),
 
             // Specialization
-            _buildTitle("Specialization"),
-            Text(data['specialization'] ?? '', style: _valueStyle()),
+            Normal_Title(title: "Specialization"),
+            Text(
+              _getSpecializationDisplayName(doctorInfo.specialization),
+              style: _valueStyle(),
+            ),
 
             const SizedBox(height: 16),
 
             // Visiting Days
-            _buildTitle("Visiting Days"),
+            Normal_Title(title: "Visiting Days"),
             Wrap(
               spacing: 8,
               runSpacing: 4,
-              children: (data['visiting_days'] as List<dynamic>? ?? [])
-                  .map((day) => Chip(
-                label: Text(day),
-                backgroundColor: Colors.blue.shade50,
-                labelStyle: const TextStyle(color: Colors.black87),
-              ))
+              children: (doctorInfo.visitingDays as List<dynamic>? ?? [])
+                  .map(
+                    (day) => Chip(
+                      label: Text(day),
+                      backgroundColor: Colors.blue.shade50,
+                      labelStyle: const TextStyle(color: Colors.black87),
+                    ),
+                  )
                   .toList(),
             ),
 
             const SizedBox(height: 16),
 
             // Visiting Time
-            _buildTitle("Visiting Time"),
-            Text(data['visiting_time'] ?? '', style: _valueStyle()),
+            Normal_Title(title: "Visiting Time"),
+            Text(doctorInfo.visitingTime, style: _valueStyle()),
           ],
         ),
       ),
@@ -112,15 +144,20 @@ class _DoctorsProfilePageState extends State<DoctorsProfilePage> {
     return const TextStyle(fontSize: 16, color: Colors.black87);
   }
 
-  Widget _buildTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 17,
-        // color: Colors.blueGrey,
-        color: Color_codes.deep_plus,
-      ),
-    );
+  String _getSpecializationDisplayName(String? specString) {
+    if (specString == null || specString.isEmpty) return 'Not specified';
+
+    try {
+      // Remove enum class prefix if present
+      final cleanSpecString = specString.replaceFirst('DoctorSpecialization.', '');
+      final spec = DoctorSpecialization.values.firstWhere(
+            (e) => e.toString().endsWith(cleanSpecString),
+        orElse: () => DoctorSpecialization.all,
+      );
+      return spec.displayName;
+    } catch (e) {
+      debugPrint('Error parsing specialization: $e');
+      return specString; // Fallback to raw string if parsing fails
+    }
   }
 }

@@ -1,96 +1,269 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:nubmed/Authentication/checkAdmin.dart';
+import 'package:nubmed/Widgets/LabTestCard.dart';
+import 'package:nubmed/model/lab_model.dart';
+import 'package:nubmed/pages/Admin_Pages/lab_test_edit_page.dart';
 
-class LabtestPage extends StatelessWidget {
-  const LabtestPage({super.key});
+class LabTestPage extends StatefulWidget {
+  const LabTestPage({super.key});
+
+  @override
+  State<LabTestPage> createState() => _LabTestPageState();
+}
+
+class _LabTestPageState extends State<LabTestPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  String _searchQuery = '';
+  String _selectedCategory = 'All';
+  Future<List<LabTest_Model>>? _testsFuture;
+
+  final List<String> _categories = [
+    'Hematology',
+    'Biochemistry',
+    'Microbiology',
+    'Pathology',
+    'Radiology',
+    'Molecular Biology', // Add this
+    'Immunology',       // Add any other categories that might exist
+    'Genetics',         // Add any other categories that might exist
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTests();
+  }
+
+   Future<void> _loadTests() async {
+    setState(() {
+      _testsFuture = _fetchTests();
+    });
+  }
+
+  Future<List<LabTest_Model>> _fetchTests() async {
+    try {
+      final snapshot = await _firestore.collection('labtests').get();
+      return snapshot.docs.map((doc) => LabTest_Model.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw Exception('Failed to load tests: $e');
+    }
+  }
+
+  List<LabTest_Model> _filterTests(List<LabTest_Model> tests) {
+    return tests.where((test) {
+      final matchesSearch = test.name.toLowerCase().contains(_searchQuery);
+      final matchesCategory = _selectedCategory == 'All' ||
+          test.category == _selectedCategory;
+      return matchesSearch && matchesCategory;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Lab Tests", style: TextStyle(fontSize: 18)),
+        title: const Text('Available Lab Tests'),
         centerTitle: true,
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('labtests').snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Something went wrong!', style: TextStyle(fontSize: 16)));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          final labTests = snapshot.data!.docs;
-
-          if (labTests.isEmpty) {
-            return Center(child: Text("No lab tests available.", style: TextStyle(fontSize: 16)));
-          }
-
-          return Padding(
-            padding: EdgeInsets.all(10),
-            child: GridView.builder(
-              itemCount: labTests.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1,
-              ),
-              itemBuilder: (context, index) {
-                final data = labTests[index].data() as Map<String, dynamic>;
-
-                return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  elevation: 4,
-                  child: Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data['testName'] ?? 'Unknown Test',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          data['department'] ?? 'No Department',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          'Sample: ${data['sampleType'] ?? '-'}',
-                          style: TextStyle(fontSize: 11),
-                        ),
-                        Spacer(),
-                        Text(
-                          'Price: ৳${data['price'] ?? 'N/A'}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                            color: Colors.green[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        actions: [
+          if(Administrator.isAdminUser || Administrator.isModeratorUser)
+            TextButton.icon(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => LabTestEditPage()),
                 );
+                if (result == true) {
+                  _loadTests();
+                }
+              },
+              label: Text("Add", style: TextStyle(color: Colors.white)),
+              icon: Icon(Icons.add, color: Colors.white),
+            )
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          _buildCategoryFilter(),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _buildTestList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Search tests...',
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilter() {
+    return SizedBox(
+      height: 50,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ChoiceChip(
+              label: Text(_categories[index]),
+              selected: _selectedCategory == _categories[index],
+              onSelected: (selected) {
+                setState(() {
+                  _selectedCategory = selected ? _categories[index] : 'All';
+                });
               },
             ),
           );
         },
       ),
     );
+  }
+
+  Widget _buildTestList() {
+    return FutureBuilder<List<LabTest_Model>>(
+      future: _testsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No tests available'));
+        }
+
+        final filteredTests = _filterTests(snapshot.data!);
+
+        if (filteredTests.isEmpty) {
+          return const Center(child: Text('No matching tests found'));
+        }
+
+        return RefreshIndicator(
+          onRefresh: _loadTests,
+          child: ListView.builder(
+            itemCount: filteredTests.length,
+            itemBuilder: (context, index) {
+              return LabTestCard(
+                test: filteredTests[index],
+                onTap: () => _showTestDetails(context, filteredTests[index]),
+                onTestUpdated: _loadTests,
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showTestDetails(BuildContext context, LabTest_Model test) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                test.name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Chip(
+                label: Text(test.category),
+                backgroundColor: Colors.blue[50],
+              ),
+              const SizedBox(height: 16),
+              _buildDetailRow('Sample Type', test.sampleType),
+              _buildDetailRow('Preparation', test.preparation),
+              _buildDetailRow('Turnaround Time', '${test.turnaroundTime} hours'),
+              _buildDetailRow('Price', '৳${test.price.toStringAsFixed(2)}'),
+              const SizedBox(height: 16),
+              const Text(
+                'Normal Ranges:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...test.normalRanges.entries.map(
+                    (entry) => _buildDetailRow(entry.key, entry.value),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _bookTest(context, test),
+                  child: const Text('Book This Test'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  void _bookTest(BuildContext context, LabTest_Model test) {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${test.name} booked successfully')),
+    );
+    // Add your actual booking logic here
   }
 }

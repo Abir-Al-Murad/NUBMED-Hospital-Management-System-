@@ -1,7 +1,6 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:nubmed/Authentication/checkAdmin.dart';
@@ -22,8 +21,8 @@ class Signinscreen extends StatefulWidget {
 }
 
 class _SigninscreenState extends State<Signinscreen> {
-  final TextEditingController _emailTEController = TextEditingController(text: "abir2@gmail.com");
-  final TextEditingController _passwordTEController = TextEditingController(text:'123456');
+  final TextEditingController _emailTEController = TextEditingController();
+  final TextEditingController _passwordTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool isLoading = false;
 
@@ -136,19 +135,22 @@ class _SigninscreenState extends State<Signinscreen> {
     });
     if(_formKey.currentState!.validate()){
       try{
-        await CheckAdmin.isAdmin(_emailTEController.text);
+        await Administrator.isAdmin(_emailTEController.text);
+        await Administrator.isModerator(_emailTEController.text);
         await FirebaseAuth.instance.signInWithEmailAndPassword(email: _emailTEController.text, password: _passwordTEController.text);
-        final fcmToken = await FirebaseMessaging.instance.getToken();
-        final uid = FirebaseAuth.instance.currentUser!.uid;
-        await FirebaseFirestore.instance.collection('users').doc(uid).update({
-          'fcmToken': fcmToken,
-        });
         Navigator.pushNamedAndRemoveUntil(context, WidgetTree.name, (predicate)=>false);
       } on FirebaseAuthException catch (e){
+        setState(() {
+          isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.message??"Login Failed"))
         );
       }
+    }else{
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 

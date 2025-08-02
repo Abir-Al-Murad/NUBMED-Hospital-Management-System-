@@ -1,14 +1,24 @@
+
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:nubmed/Authentication/checkAdmin.dart';
+import 'package:nubmed/Widgets/showsnackBar.dart';
+import 'package:nubmed/model/appointment_model.dart';
+import 'package:nubmed/model/user_model.dart';
 import 'package:nubmed/pages/Doctors_Profile_page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 import 'package:nubmed/utils/specialization_list.dart';
 
+import '../model/doctor_model.dart';
+import 'Admin_Pages/addOrUpdate_doctor.dart';
+
 class DoctorPage extends StatefulWidget {
   const DoctorPage({super.key});
+  static String name = '/doctor-page';
 
   @override
   State<DoctorPage> createState() => _DoctorPageState();
@@ -16,6 +26,7 @@ class DoctorPage extends StatefulWidget {
 
 class _DoctorPageState extends State<DoctorPage> {
   DoctorSpecialization? selectedSpecialization;
+  Future<List<Doctor>>? _doctorsFuture;
 
   Future<DateTime?> showDoctorAppointmentPicker(
       BuildContext context,
@@ -24,8 +35,7 @@ class _DoctorPageState extends State<DoctorPage> {
       ) async {
     final DateTime now = DateTime.now();
     final DateTime today = DateTime(now.year, now.month, now.day);
-    final DateTime startOfThisWeek = today.subtract(Duration(days: today.weekday - 1));
-    final DateTime endOfNextWeek = startOfThisWeek.add(const Duration(days: 13));
+    final DateTime endOfNextWeek = today.add(const Duration(days: 13));
 
     DateTime? firstAvailableDate;
     for (int i = 0; i <= 13; i++) {
@@ -90,26 +100,59 @@ class _DoctorPageState extends State<DoctorPage> {
   }
 
   @override
+  void initState() {
+    _loadDoctors();
+    super.initState();
+  }
+
+  void _loadDoctors() {
+    _doctorsFuture = FirebaseFirestore.instance
+        .collection('doctors')
+        .get()
+        .then(
+          (snapshot) =>
+          snapshot.docs.map((e) => Doctor.fromFirestore(e)).toList(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Our Doctors"), centerTitle: true),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('doctors').snapshots(),
+      appBar: AppBar(
+        title: const Text("Our Doctors"),
+        centerTitle: true,
+        actions: [
+          if (Administrator.isAdminUser)
+            IconButton(
+              onPressed: () {
+                Navigator.pushNamed(context, AddOrUpdateNewDoctor.name).then((_)=>_loadDoctors());
+              },
+              icon: const Icon(Icons.add, color: Colors.white),
+            ),
+        ],
+      ),
+      body: FutureBuilder<List<Doctor>>(
+        future: _doctorsFuture,
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text("Something went wrong"));
+          if (snapshot.hasError)
+            return const Center(child: Text("Something went wrong"));
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final docs = snapshot.data!.docs;
-          final filteredDocs = (selectedSpecialization == null || selectedSpecialization!.displayName == 'All')
-              ? docs
-              : docs.where((e) {
-            final data = e.data() as Map<String, dynamic>;
-            return data['specialization'] == selectedSpecialization!.displayName;
-          }).toList();
+          final doctors = snapshot.data??[];
 
-          if (docs.isEmpty) return const Center(child: Text("No doctors available"));
+          if (doctors.isEmpty) {
+            return const Center(child: Text("No Doctors Available"));
+          }
+
+          final filteredDocs =
+          (selectedSpecialization == null ||
+              selectedSpecialization!.displayName == 'All')
+              ? doctors
+              : doctors.where((d) {
+            return d.specialization == selectedSpecialization.toString();
+          }).toList();
 
           return Padding(
             padding: const EdgeInsets.all(10.0),
@@ -119,57 +162,97 @@ class _DoctorPageState extends State<DoctorPage> {
                 const SizedBox(height: 5.0),
                 DropdownButtonFormField<DoctorSpecialization>(
                   value: selectedSpecialization,
-                  hint: const Text("Select Specialization", style: TextStyle(fontSize: 14.0)),
+                  hint: const Text(
+                    "Select Specialization",
+                    style: TextStyle(fontSize: 14.0),
+                  ),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.0),
-                      borderSide: BorderSide(color: Color_codes.meddle, width: 1.5),
+                      borderSide: BorderSide(
+                        color: Color_codes.meddle,
+                        width: 1.5,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.0),
-                      borderSide: BorderSide(color: Color_codes.meddle, width: 1.5),
+                      borderSide: BorderSide(
+                        color: Color_codes.meddle,
+                        width: 1.5,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.0),
-                      borderSide: BorderSide(color: Color_codes.meddle, width: 2),
+                      borderSide: BorderSide(
+                        color: Color_codes.meddle,
+                        width: 2,
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12.0),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10.0,
+                      vertical: 12.0,
+                    ),
                   ),
                   items: DoctorSpecialization.values
-                      .map((e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e.displayName, style: const TextStyle(fontSize: 12.0)),
-                  ))
+                      .map(
+                        (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(
+                        e.displayName,
+                        style: const TextStyle(fontSize: 12.0),
+                      ),
+                    ),
+                  )
                       .toList(),
-                  onChanged: (value) => setState(() => selectedSpecialization = value),
+                  onChanged: (value) =>
+                      setState(() => selectedSpecialization = value),
                 ),
                 const SizedBox(height: 12.0),
                 Expanded(
                   child: GridView.builder(
                     itemCount: filteredDocs.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 10.0,
                       mainAxisSpacing: 10.0,
-                      childAspectRatio: 0.55,
+                      childAspectRatio: 0.5,
                     ),
                     itemBuilder: (context, index) {
-                      final doctor = filteredDocs[index].data() as Map<String, dynamic>;
-                      final List<dynamic> availableDays = doctor['visiting_days'] ?? [];
-                      final isAvailable = isDoctorAvailableToday(availableDays, doctor['visiting_time']);
+                      print(
+                        isDoctorAvailableToday(["Monday"]),
+                      ); // Expected: true (if now < 4PM on Monday)
+
+                      final doctor = filteredDocs[index];
+                      final isAvailable = isDoctorAvailableToday(
+                        doctor.visitingDays,
+                      );
 
                       return GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DoctorsProfilePage(
-                              doctorsData: doctor,
-                              index: index,
+                        onTap: () async {
+                          final updatedDoctor = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DoctorsProfilePage(doctor: doctor),
                             ),
-                          ),
-                        ),
+                          );
+                          if (updatedDoctor != null) {
+                            setState(() {
+                              // Update both the main list and filtered list
+                              final index = doctors.indexWhere((d) => d.id == updatedDoctor.id);
+                              if (index != -1) {
+                                doctors[index] = updatedDoctor;
+
+                                // Also update filteredDocs if this doctor is in it
+                                final filteredIndex = filteredDocs.indexWhere((d) => d.id == updatedDoctor.id);
+                                if (filteredIndex != -1) {
+                                  filteredDocs[filteredIndex] = updatedDoctor;
+                                }
+                              }
+                            });
+                          }
+                        },
                         child: Container(
-                          height: 200,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(14.0),
                             color: Colors.white,
@@ -185,109 +268,119 @@ class _DoctorPageState extends State<DoctorPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Hero(
-                                tag: "${doctor['name']}$index",
+                                tag: "doctor_${doctor.id}",
                                 child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14.0)),
                                   child: CachedNetworkImage(
-                                    imageUrl: doctor['image_url'] ?? 'https://default-image-url',
-                                    height: 160.0,
+                                    imageUrl: doctor.imageUrl,
+                                    height: 180,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      height: 115.0,
-                                      color: Colors.grey[300],
-                                    ),
-                                    errorWidget: (context, url, error) => const Icon(Icons.error, size: 28.0),
+                                    placeholder: (context,x) {
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                                    },
+                                    errorWidget: (context,x,y) {
+                                      return Image.asset(
+                                        "assets/blank person.jpg",
+                                        height: 180,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
-                              Expanded(
+                              Flexible(
                                 child: Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        doctor['name'] ?? 'Unknown',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0),
+                                        doctor.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12.0,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 2.0),
                                       Text(
-                                        doctor['degree'] ?? '',
-                                        style: TextStyle(fontSize: 10.0, color: Colors.grey[600]),
+                                        doctor.degree,
+                                        style: TextStyle(
+                                          fontSize: 10.0,
+                                          color: Colors.grey[600],
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 6.0),
                                       Text(
-                                        doctor['specialization'] ?? '',
-                                        style: TextStyle(fontSize: 10.0, color: Colors.grey[700]),
+                                        doctor.specialization,
+                                        style: TextStyle(
+                                          fontSize: 10.0,
+                                          color: Colors.grey[700],
+                                        ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 6.0),
                                       Text(
-                                        'Visiting Time: ${doctor['visiting_time'] ?? ''}',
-                                        style: TextStyle(fontSize: 10.0, color: Colors.grey[700]),
+                                        'Visiting Time: ${doctor.visitingTime}',
+                                        style: TextStyle(
+                                          fontSize: 10.0,
+                                          color: Colors.grey[700],
+                                        ),
                                       ),
                                       const SizedBox(height: 6.0),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6.0,
+                                          vertical: 2.0,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: isAvailable ? Colors.green[50] : Colors.red[50],
-                                          borderRadius: BorderRadius.circular(6.0),
+                                          color: isAvailable
+                                              ? Colors.green[50]
+                                              : Colors.red[50],
+                                          borderRadius: BorderRadius.circular(
+                                            6.0,
+                                          ),
                                         ),
                                         child: Text(
-                                          isAvailable ? "Available Today" : "Not Available Today",
+                                          isAvailable
+                                              ? "Available Today"
+                                              : "Not Available Today",
                                           style: TextStyle(
                                             fontSize: 10.0,
                                             fontWeight: FontWeight.w600,
-                                            color: isAvailable ? Colors.green : Colors.red,
+                                            color: isAvailable
+                                                ? Colors.green
+                                                : Colors.red,
                                           ),
                                         ),
                                       ),
                                       const Spacer(),
                                       FilledButton(
                                         style: FilledButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 6.0,
+                                          ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8.0),
+                                            borderRadius: BorderRadius.circular(
+                                              8.0,
+                                            ),
                                           ),
                                         ),
                                         onPressed: () async {
-                                          final selectedDate = await showDoctorAppointmentPicker(
-                                            context,
-                                            List<String>.from(doctor['visiting_days'] ?? []),
-                                            doctor['visiting_time'] ?? "12:00 PM",
-                                          );
-
-                                          if (selectedDate == null) return;
-
-                                          final querySnapshot = await FirebaseFirestore.instance
-                                              .collection('appointments')
-                                              .where('doctorName', isEqualTo: doctor['name'])
-                                              .where('appointmentDate', isEqualTo: selectedDate)
-                                              .get();
-
-                                          await FirebaseFirestore.instance.collection('appointments').add({
-                                            'doctorName': doctor['name'],
-                                            'userId': FirebaseAuth.instance.currentUser!.uid,
-                                            'userName': FirebaseAuth.instance.currentUser!.displayName,
-                                            'appointmentDate': selectedDate,
-                                            'timestamp': FieldValue.serverTimestamp(),
-                                            'serialNumber': querySnapshot.docs.length + 1,
-                                            'visiting_time': doctor['visiting_time'],
-                                          });
-
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "Your Appointment Confirmed on ${DateFormat("d MMMM").format(selectedDate)} at ${doctor['visiting_time']}",
-                                                style: const TextStyle(fontSize: 12.0),
-                                              ),
-                                            ),
-                                          );
+                                          _bookAppointment(doctor);
                                         },
-                                        child: const Text("Make Appointment", style: TextStyle(fontSize: 12.0)),
+                                        child: const Text(
+                                          "Make Appointment",
+                                          style: TextStyle(fontSize: 12.0),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -308,16 +401,149 @@ class _DoctorPageState extends State<DoctorPage> {
     );
   }
 
-  bool isDoctorAvailableToday(List<dynamic> availableDays, String visitingTime) {
-    final now = DateTime.now();
-    final todayName = DateFormat('EEEE').format(now);
-    if (!availableDays.contains(todayName)) return false;
+  bool isDoctorAvailableToday(List<dynamic> availableDays) {
     try {
-      final visitingDateTime = DateFormat.jm().parse(visitingTime);
-      final todayVisitingTime = DateTime(now.year, now.month, now.day, visitingDateTime.hour, visitingDateTime.minute);
-      return now.isBefore(todayVisitingTime);
+      final now = DateTime.now();
+      final todayName = DateFormat('EEEE').format(now);
+
+      // Convert all day names to lowercase for case-insensitive comparison
+      final availableDayNames = availableDays
+          .map((day) => day.toString().toLowerCase())
+          .toList();
+
+      // Check if today is in availableDays
+      final isAvailable = availableDayNames.contains(todayName.toLowerCase());
+
+      if (!isAvailable) {
+        debugPrint(
+          'Doctor not available today (Today: $todayName, Available: $availableDays)',
+        );
+      }
+
+      return isAvailable;
     } catch (e) {
+      debugPrint("Error checking availability: $e");
       return false;
+    }
+  }
+
+  Future<void> _bookAppointment(Doctor doctor) async {
+    try {
+      // Get current user
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        showsnakBar(context, "You must be logged in", true);
+        return;
+      }
+
+      // Get user data
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      final user = medUser.fromFirestore(userDoc);
+
+      // Date selection
+      final selectedDate = await showDoctorAppointmentPicker(
+        context,
+        doctor.visitingDays,
+        doctor.visitingTime,
+      );
+      if (selectedDate == null) return;
+
+      // Check for existing appointment
+      final existing = await FirebaseFirestore.instance
+          .collection('appointments')
+          .where('doctorId', isEqualTo: doctor.id)
+          .where('userId', isEqualTo: user.id)
+          .where(
+        'appointmentDate',
+        isGreaterThanOrEqualTo: DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day,
+        ),
+      )
+          .where(
+        'appointmentDate',
+        isLessThan: DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day + 1,
+        ),
+      )
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        showsnakBar(
+          context,
+          "You already have an appointment with this doctor today",
+          true,
+        );
+        return;
+      }
+
+      // Combine date and time
+      final time = DateFormat.jm().parse(doctor.visitingTime);
+      final appointmentDateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        time.hour,
+        time.minute,
+      );
+
+      // Get serial number
+      final appointments = await FirebaseFirestore.instance
+          .collection('appointments')
+          .where('doctorId', isEqualTo: doctor.id)
+          .where(
+        'appointmentDate',
+        isGreaterThanOrEqualTo: DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day,
+        ),
+      )
+          .where(
+        'appointmentDate',
+        isLessThan: DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day + 1,
+        ),
+      )
+          .get();
+
+      // Create appointment
+      final appointment = Appointment(
+        id: '',
+        appointmentDate: appointmentDateTime,
+        doctorId: doctor.id!,
+        doctorName: doctor.name,
+        doctorSpecialization: doctor.specialization,
+        serialNumber: appointments.docs.length + 1,
+        timestamp: DateTime.now(),
+        userId: user.id,
+        userName: user.name,
+        userPhone: user.phone,
+        userStudentId: user.studentId,
+        visited: false,
+        visitingTime: doctor.visitingTime,
+      );
+
+      await FirebaseFirestore.instance
+          .collection('appointments')
+          .add(appointment.toFirestore());
+
+      showsnakBar(
+        context,
+        'Appointment booked for ${DateFormat('MMMM d').format(selectedDate)} at ${doctor.visitingTime}',
+        false,
+      );
+    } catch (e) {
+      showsnakBar(context, 'Failed to book appointment: ${e.toString()}', true);
     }
   }
 }

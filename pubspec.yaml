@@ -37,17 +37,17 @@ dependencies:
   firebase_core:
   firebase_auth:
   firebase_cloud_firestore:
-  firebase_storage:   #new
-  firebase_analytics:  #new
   cached_network_image:
   carousel_slider:
   google_fonts:
   flutter_svg: ^2.2.0
-  firebase_messaging:
   table_calendar:
   intl:
   image_picker:
   http:
+  url_launcher:
+  lottie: 
+  flutter_launcher_icons: ^0.14.4
 
 
 dev_dependencies:
@@ -104,3 +104,7 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_icon.png"  # তোমার ইচ্ছেমতো path

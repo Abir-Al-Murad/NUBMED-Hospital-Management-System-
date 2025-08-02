@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:nubmed/utils/Color_codes.dart';
+import 'package:nubmed/model/medicine_model.dart';
+
 
 class MedicinePage extends StatefulWidget {
   const MedicinePage({super.key});
@@ -12,7 +13,27 @@ class MedicinePage extends StatefulWidget {
 
 class _MedicinePageState extends State<MedicinePage> {
   String _searchTerm = '';
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  String _filterCategory = 'All';
+  Future<List<Medicine>>? _medicinesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshData();
+  }
+
+  Future<void> _refreshData() {
+    setState(() {
+      _medicinesFuture = FirebaseFirestore.instance
+          .collection('medicines')
+          .orderBy('name')
+          .get()
+          .then((snapshot) =>
+          snapshot.docs.map((doc) => Medicine.fromFirestore(doc)).toList());
+    });
+    return _medicinesFuture!;
+  }
 
   @override
   void dispose() {
@@ -39,109 +60,142 @@ class _MedicinePageState extends State<MedicinePage> {
       appBar: AppBar(
         title: const Text("Available Medicines"),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData,
+          ),
+        ],
       ),
-      body: StreamBuilder(
-        stream: FirebaseFirestore.instance.collection('medicines').snapshots(),
+      body: FutureBuilder<List<Medicine>>(
+        future: _medicinesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData) {
-            return const Center(child: Text("No Medicine Available"));
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("No Medicines Available"));
           }
 
-          final medicines = snapshot.data!.docs;
+          final medicines = snapshot.data!;
+          final filteredData = medicines.where((medicine) {
+            final searchMatch = _searchTerm.isEmpty ||
+                medicine.name.toLowerCase().contains(_searchTerm.toLowerCase());
+            final categoryMatch = _filterCategory == 'All' ||
+                medicine.category == _filterCategory;
 
-          final filteredData = _searchTerm.isEmpty
-              ? medicines
-              : medicines.where((doc) {
-            final name = doc['name'].toString().toLowerCase();
-            return name.contains(_searchTerm.toLowerCase());
+            return searchMatch && categoryMatch;
           }).toList();
 
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
+                padding: const EdgeInsets.all(12),
+                child: Column(
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: "Search here",
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: _clearSearch,
-                          )
-                              : null,
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: "Search medicines...",
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: _clearSearch,
+                        )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      onChanged: (value) => setState(() => _searchTerm = value),
                     ),
-                    const SizedBox(width: 5),
-                    ElevatedButton(
-                      onPressed: _performSearch,
-                      child: const Text("Search"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color_codes.meddle,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 12),
+                    // DropdownButtonFormField<String>(
+                    //   value: _filterCategory,
+                    //   items: ['All', 'Tablet', 'Syrup', 'Capsule', 'Injection', 'Drops']
+                    //       .map((category) => DropdownMenuItem(
+                    //     value: category,
+                    //     child: Text(category),
+                    //   ))
+                    //       .toList(),
+                    //   onChanged: (value) => setState(() => _filterCategory = value!),
+                    //   decoration: InputDecoration(
+                    //     labelText: 'Category',
+                    //     border: OutlineInputBorder(
+                    //       borderRadius: BorderRadius.circular(12),
+                    //     ),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
               Expanded(
                 child: filteredData.isEmpty
-                    ? const Center(child: Text("No medicine found"))
+                    ? const Center(child: Text("No matching medicines found"))
                     : ListView.builder(
                   itemCount: filteredData.length,
                   itemBuilder: (context, index) {
-                    final data = filteredData[index].data();
+                    final medicine = filteredData[index];
+                    final isLowStock = medicine.stock <= medicine.minStock;
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      elevation: 3,
+                          horizontal: 12, vertical: 6),
+                      elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
+                      child: ExpansionTile(
                         title: Text(
-                          data['name'] ?? 'Unknown Medicine',
+                          medicine.name,
                           style: const TextStyle(
-                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 6),
-                            Text("Type: ${data['type'] ?? 'N/A'}"),
-                            Text(
-                                "Brand: ${data['manufacturer'] ?? 'N/A'}"),
-                            Text("Uses: ${data['uses'] ?? 'N/A'}"),
-                            Text("Dose: ${data['dosage'] ?? 'N/A'}"),
-                            Text(
-                                "Side Effects: ${data['side_effects'] ?? 'N/A'}"),
+                            const SizedBox(height: 4),
+                            Text("${medicine.category} • ${medicine.manufacturer}"),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Text("Stock: ${medicine.stock}"),
+                                if (isLowStock)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Icon(Icons.warning,
+                                        color: Colors.orange, size: 16),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (medicine.genericName != null)
+                                  _buildDetailRow("Generic Name:", medicine.genericName!),
+                                if (medicine.uses != null)
+                                  _buildDetailRow("Uses:", medicine.uses!),
+                                if (medicine.dosage != null)
+                                  _buildDetailRow("Dosage:", medicine.dosage!),
+                                if (medicine.sideEffects != null)
+                                  _buildDetailRow("Side Effects:", medicine.sideEffects!),
+                                if (medicine.expiry != null)
+                                  _buildDetailRow("Expiry Date:",
+                                      "${medicine.expiry!.toLocal()}".split(' ')[0]),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -150,6 +204,26 @@ class _MedicinePageState extends State<MedicinePage> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 150,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value)),
+        ],
       ),
     );
   }

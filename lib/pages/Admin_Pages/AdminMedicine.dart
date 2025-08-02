@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 
@@ -14,298 +13,211 @@ class AdminMedicinePage extends StatefulWidget {
 class _AdminMedicinePageState extends State<AdminMedicinePage> {
   String _searchTerm = '';
   final TextEditingController _searchController = TextEditingController();
+  String _filterType = 'All';
+  bool _showLowStockOnly = false;
+  Future<List<QueryDocumentSnapshot>>? _medicinesFuture;
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _refreshData();
   }
 
-  void _performSearch() {
+  Future<void> _refreshData() {
     setState(() {
-      _searchTerm = _searchController.text.trim();
+      _medicinesFuture = FirebaseFirestore.instance
+          .collection('medicines')
+          .orderBy('name')
+          .get()
+          .then((snapshot) => snapshot.docs);
     });
+    return _medicinesFuture!;
   }
-
-  void _clearSearch() {
-    _searchController.clear();
-    setState(() {
-      _searchTerm = '';
-    });
-  }
-
-  void _addOrEditMedicine({DocumentSnapshot? document}) {
-    final isEditing = document != null;
-    final TextEditingController nameController =
-    TextEditingController(text: document?['name'] ?? '');
-    final TextEditingController typeController =
-    TextEditingController(text: document?['type'] ?? '');
-    final TextEditingController manufacturerController =
-    TextEditingController(text: document?['manufacturer'] ?? '');
-    final TextEditingController usesController =
-    TextEditingController(text: document?['uses'] ?? '');
-    final TextEditingController dosageController =
-    TextEditingController(text: document?['dosage'] ?? '');
-    final TextEditingController sideEffectsController =
-    TextEditingController(text: document?['side_effects'] ?? '');
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(isEditing ? "Edit Medicine" : "Add New Medicine"),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildTextField("Name", nameController),
-              _buildTextField("Type", typeController),
-              _buildTextField("Brand/Manufacturer", manufacturerController),
-              _buildTextField("Uses", usesController),
-              _buildTextField("Dosage", dosageController),
-              _buildTextField("Side Effects", sideEffectsController),
-            ],
-          ),
-        ),
-        actions: [
-          Column(
-            children: [
-              FilledButton(
-                onPressed: () async {
-                  final data = {
-                    'name': nameController.text.trim(),
-                    'type': typeController.text.trim(),
-                    'manufacturer': manufacturerController.text.trim(),
-                    'uses': usesController.text.trim(),
-                    'dosage': dosageController.text.trim(),
-                    'side_effects': sideEffectsController.text.trim(),
-                  };
-
-                  final collection =
-                  FirebaseFirestore.instance.collection('medicines');
-
-                  if (isEditing) {
-                    await collection.doc(document!.id).update(data);
-                  } else {
-                    await collection.add(data);
-                  }
-
-                  Navigator.pop(context);
-                },
-                child: Text(isEditing ? "Update" : "Add"),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(color: Color_codes.meddle),
-          border: OutlineInputBorder(),
-        ),
-      )
-
-    );
-  }
-
-
-  Future<void> _deleteMedicine(String id) async {
-    TextEditingController _passwordTEController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Confirm Deletion"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Enter your password to confirm deletion"),
-              TextField(
-                controller: _passwordTEController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  hintText: "Password",
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                final password = _passwordTEController.text.trim();
-                final user = FirebaseAuth.instance.currentUser;
-
-                if (user != null && user.email != null) {
-                  try {
-                    final cred = EmailAuthProvider.credential(
-                        email: user.email!, password: password);
-                    await user.reauthenticateWithCredential(cred);
-
-                    // Password matched — now delete medicine
-                    await FirebaseFirestore.instance.collection('medicines').doc(id).delete();
-
-                    Navigator.of(context).pop(); // Close dialog
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Medicine deleted')),
-                    );
-                  } on FirebaseAuthException catch (e) {
-                    if (e.code == 'wrong-password') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Wrong password')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Something went wrong')),
-                      );
-                    }
-                  }
-                }
-              },
-              child: const Text("Confirm"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Cancel dialog
-              },
-              child: const Text("Cancel"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Manage Medicines"),
-        centerTitle: true,
+        title: const Text("Medicine Inventory"),
         actions: [
-          TextButton(onPressed: (){
-            _addOrEditMedicine();
-          }, child: Text("+ Add",style: TextStyle(fontWeight: FontWeight.w500,color: Colors.white),))
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _addOrEditMedicine(),
+          ),
         ],
       ),
-      body: StreamBuilder(
-        stream: FirebaseFirestore.instance.collection('medicines').snapshots(),
+      body: FutureBuilder<List<QueryDocumentSnapshot>>(
+        future: _medicinesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData) {
-            return const Center(child: Text("No Medicine Available"));
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("No medicines available"));
           }
 
-          final medicines = snapshot.data!.docs;
+          final medicines = snapshot.data!;
+          final filteredData = medicines.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final name = data['name']?.toString().toLowerCase() ?? '';
+            final type = data['type']?.toString() ?? '';
+            final stock = (data['stock'] ?? 0) as int;
+            final minStock = (data['minStock'] ?? 10) as int;
 
-          final filteredData = _searchTerm.isEmpty
-              ? medicines
-              : medicines.where((doc) {
-            final name = doc['name'].toString().toLowerCase();
-            return name.contains(_searchTerm.toLowerCase());
+            final searchMatch = _searchTerm.isEmpty ||
+                name.contains(_searchTerm.toLowerCase());
+            final typeMatch = _filterType == 'All' ||
+                type == _filterType;
+            final stockMatch = !_showLowStockOnly || stock <= minStock;
+
+            return searchMatch && typeMatch && stockMatch;
           }).toList();
 
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
+                padding: const EdgeInsets.all(12),
+                child: Column(
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: "Search here",
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: _clearSearch,
-                          )
-                              : null,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: "Search medicines...",
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchTerm = '');
+                          },
+                        )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      onChanged: (value) => setState(() => _searchTerm = value),
                     ),
-                    const SizedBox(width: 5),
-                    ElevatedButton(
-                      onPressed: _performSearch,
-                      child: const Text("Search"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color_codes.meddle,
-                        foregroundColor: Colors.white,
-                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: _filterType,
+                            items: ['All', 'Tablet', 'Syrup', 'Injection', 'Capsule', 'Drops']
+                                .map((type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ))
+                                .toList(),
+                            onChanged: (value) => setState(() => _filterType = value!),
+                            decoration: InputDecoration(
+                              labelText: 'Filter by Type',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilterChip(
+                          label: const Text("Low Stock"),
+                          selected: _showLowStockOnly,
+                          onSelected: (selected) => setState(() => _showLowStockOnly = selected),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
               Expanded(
                 child: filteredData.isEmpty
-                    ? const Center(child: Text("No medicine found"))
+                    ? const Center(child: Text("No matching medicines found"))
                     : ListView.builder(
                   itemCount: filteredData.length,
                   itemBuilder: (context, index) {
                     final doc = filteredData[index];
-                    final data = doc.data();
+                    final data = doc.data() as Map<String, dynamic>;
+                    final stock = (data['stock'] ?? 0) as int;
+                    final minStock = (data['minStock'] ?? 10) as int;
+                    final price = data['price']?.toString() ?? 'N/A';
+                    final expiry = data['expiry'] is Timestamp
+                        ? data['expiry'].toDate().toString().substring(0, 10)
+                        : data['expiry']?.toString() ?? 'N/A';
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      elevation: 3,
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
+                      child: ExpansionTile(
                         title: Text(
                           data['name'] ?? 'Unknown Medicine',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 6),
-                            Text("Type: ${data['type'] ?? 'N/A'}"),
-                            Text(
-                                "Brand: ${data['manufacturer'] ?? 'N/A'}"),
-                            Text("Uses: ${data['uses'] ?? 'N/A'}"),
-                            Text("Dose: ${data['dosage'] ?? 'N/A'}"),
-                            Text("Side Effects: ${data['side_effects'] ?? 'N/A'}"),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () =>
-                                  _addOrEditMedicine(document: doc),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () =>
-                                  _deleteMedicine(doc.id),
+                            const SizedBox(height: 4),
+                            Text("${data['type']} • ${data['manufacturer']}"),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Text("Stock: $stock"),
+                                if (stock <= minStock)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Icon(Icons.warning,
+                                        color: Colors.orange, size: 16),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildDetailRow("Generic Name:", data['genericName']),
+                                _buildDetailRow("Price:", "\$$price"),
+                                _buildDetailRow("Uses:", data['uses']),
+                                _buildDetailRow("Dosage:", data['dosage']),
+                                _buildDetailRow("Side Effects:",
+                                    data['side_effects'] ?? data['sideEffects']),
+                                _buildDetailRow("Expiry Date:", expiry),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    OutlinedButton(
+                                      onPressed: () => _addOrEditMedicine(document: doc),
+                                      child: const Text("Edit"),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    OutlinedButton(
+                                      onPressed: () => _deleteMedicine(doc.id),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                      ),
+                                      child: const Text("Delete"),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -316,5 +228,186 @@ class _AdminMedicinePageState extends State<AdminMedicinePage> {
         },
       ),
     );
+  }
+
+  Widget _buildDetailRow(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value ?? 'N/A')),
+        ],
+      ),
+    );
+  }
+
+  void _addOrEditMedicine({DocumentSnapshot? document}) {
+    final isEditing = document != null;
+    final data = document?.data() as Map<String, dynamic>? ?? {};
+
+    final nameController = TextEditingController(text: data['name'] ?? '');
+    final genericNameController = TextEditingController(text: data['genericName'] ?? '');
+    final typeController = TextEditingController(text: data['type'] ?? '');
+    final manufacturerController = TextEditingController(text: data['manufacturer'] ?? '');
+    final stockController = TextEditingController(text: data['stock']?.toString() ?? '0');
+    final minStockController = TextEditingController(text: data['minStock']?.toString() ?? '10');
+    final priceController = TextEditingController(text: data['price']?.toString() ?? '');
+    final usesController = TextEditingController(text: data['uses'] ?? '');
+    final dosageController = TextEditingController(text: data['dosage'] ?? '');
+    final sideEffectsController = TextEditingController(
+        text: data['side_effects'] ?? data['sideEffects'] ?? ''
+    );
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(isEditing ? "Edit Medicine" : "Add New Medicine"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildFormField("Medicine Name*", nameController),
+              _buildFormField("Generic Name", genericNameController),
+              _buildFormField("Type (Tablet/Syrup/etc)*", typeController),
+              _buildFormField("Manufacturer*", manufacturerController),
+              _buildNumberField("Current Stock*", stockController),
+              _buildNumberField("Minimum Stock", minStockController),
+              _buildNumberField("Price", priceController, isCurrency: true),
+              _buildFormField("Uses/Indications", usesController),
+              _buildFormField("Dosage Instructions", dosageController),
+              _buildFormField("Side Effects", sideEffectsController),
+            ],
+          ),
+        ),
+        actions: [
+          Column(
+            children: [
+              FilledButton(
+                onPressed: () async {
+                  if (nameController.text.isEmpty ||
+                      typeController.text.isEmpty ||
+                      manufacturerController.text.isEmpty ||
+                      stockController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please fill all required fields (*)')),
+                    );
+                    return;
+                  }
+
+                  final medicineData = {
+                    'name': nameController.text.trim(),
+                    'genericName': genericNameController.text.trim(),
+                    'type': typeController.text.trim(),
+                    'manufacturer': manufacturerController.text.trim(),
+                    'stock': int.tryParse(stockController.text) ?? 0,
+                    'minStock': int.tryParse(minStockController.text) ?? 10,
+                    'price': priceController.text.trim(),
+                    'uses': usesController.text.trim(),
+                    'dosage': dosageController.text.trim(),
+                    'side_effects': sideEffectsController.text.trim(),
+                    'updatedAt': FieldValue.serverTimestamp(),
+                  };
+
+                  try {
+                    final collection = FirebaseFirestore.instance.collection('medicines');
+                    if (isEditing) {
+                      await collection.doc(document.id).update(medicineData);
+                    } else {
+                      await collection.add(medicineData);
+                    }
+                    Navigator.pop(context);
+                    _refreshData();
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ${e.toString()}')),
+                    );
+                  }
+                },
+                child: Text(isEditing ? "Update" : "Add"),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Color_codes.meddle),
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberField(String label, TextEditingController controller,
+      {bool isCurrency = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Color_codes.meddle),
+          border: const OutlineInputBorder(),
+          prefix: isCurrency ? const Text('\$') : null,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteMedicine(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Delete"),
+        content: const Text("Are you sure you want to delete this medicine?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('medicines').doc(id).delete();
+      _refreshData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Medicine deleted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
   }
 }
