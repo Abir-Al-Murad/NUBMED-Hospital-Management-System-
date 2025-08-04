@@ -7,6 +7,7 @@ import 'package:nubmed/Authentication/checkAdmin.dart';
 import 'package:nubmed/Authentication/sign_up_screen.dart';
 import 'package:nubmed/WidgetTree.dart';
 import 'package:nubmed/Widgets/screen_background.dart';
+import 'package:nubmed/Widgets/showsnackBar.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 
 
@@ -32,11 +33,6 @@ class _SigninscreenState extends State<Signinscreen> {
     _passwordTEController.dispose();
     super.dispose();
   }
-  @override
-  // void initState() {
-  //   addDoctorData();
-  //   super.initState();
-  // }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,14 +134,24 @@ class _SigninscreenState extends State<Signinscreen> {
         await Administrator.isAdmin(_emailTEController.text);
         await Administrator.isModerator(_emailTEController.text);
         await FirebaseAuth.instance.signInWithEmailAndPassword(email: _emailTEController.text, password: _passwordTEController.text);
+
+        User? user = FirebaseAuth.instance.currentUser;
+        if(user !=null && !user.emailVerified){
+          user.sendEmailVerification();
+          await FirebaseAuth.instance.signOut();
+          showsnakBar(context, "Please verify your email before signing in", true);
+          setState(() {
+            isLoading = false;
+          });
+          return;
+        }
+
         Navigator.pushNamedAndRemoveUntil(context, WidgetTree.name, (predicate)=>false);
       } on FirebaseAuthException catch (e){
         setState(() {
           isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message??"Login Failed"))
-        );
+        showsnakBar(context, "Login Failed", true);
       }
     }else{
       setState(() {

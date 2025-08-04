@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:nubmed/model/appointment_model.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 
 class Appointmentpage extends StatefulWidget {
@@ -38,7 +39,7 @@ class _AppointmentpageState extends State<Appointmentpage> {
         stream: userAppointments,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print("Firestore Error: ${snapshot.error}");
+            debugPrint("Firestore Error: ${snapshot.error}");
             return const Center(child: Text('Something went wrong!'));
           }
 
@@ -56,11 +57,8 @@ class _AppointmentpageState extends State<Appointmentpage> {
             padding: const EdgeInsets.all(12),
             itemCount: docs.length,
             itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              print(data);
-              final DateTime date = data['appointmentDate']?.toDate();
-              final isOver = isAppoinmentOver(date);
-              final docId = docs[index].id;
+              final appointment = Appointment.fromFirestore(docs[index]);
+              final isOver = isAppointmentOver(appointment.appointmentDate);
 
               return Card(
                 shape: RoundedRectangleBorder(
@@ -83,7 +81,7 @@ class _AppointmentpageState extends State<Appointmentpage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              data['doctorName'] ?? 'Unknown Doctor',
+                              appointment.doctorName,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -91,13 +89,18 @@ class _AppointmentpageState extends State<Appointmentpage> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Date: ${date.day}/${date.month}/${date.year}',
+                              'Date: ${appointment.formattedAppointmentDate}',
                               style: const TextStyle(fontSize: 15),
                             ),
                             Text(
-                              'Time: ${data['visiting_time']}',
+                              'Time: ${appointment.visitingTime}',
                               style: const TextStyle(fontSize: 15),
                             ),
+                            if (appointment.doctorSpecialization.isNotEmpty)
+                              Text(
+                                'Specialization: ${appointment.doctorSpecialization}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
                           ],
                         ),
                       ),
@@ -115,14 +118,14 @@ class _AppointmentpageState extends State<Appointmentpage> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              'Serial: ${data['serialNumber']}',
+                              'Serial: ${appointment.serialNumber}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: Colors.teal,
                               ),
                             ),
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               shape: RoundedRectangleBorder(
@@ -135,15 +138,11 @@ class _AppointmentpageState extends State<Appointmentpage> {
                             ),
                             onPressed: isOver
                                 ? () async {
-                                    await FirebaseFirestore.instance
-                                        .collection('appointments')
-                                        .doc(docId)
-                                        .delete();
-                                    setState(() {});
-                                  }
+                              await _deleteAppointment(appointment.id);
+                            }
                                 : () {
-                                    cancelAppointment(docId, data);
-                                  },
+                              _cancelAppointment(appointment);
+                            },
                             child: Text(isOver ? "Delete" : "Cancel"),
                           ),
                         ],
@@ -159,47 +158,56 @@ class _AppointmentpageState extends State<Appointmentpage> {
     );
   }
 
-  bool isAppoinmentOver(DateTime appointmentDate) {
+  bool isAppointmentOver(DateTime appointmentDate) {
     try {
-      // Normalize both dates to midnight (remove time components)
       final appointmentDay = DateTime(
         appointmentDate.year,
         appointmentDate.month,
         appointmentDate.day,
       );
-
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-
-      if(appointmentDay.isBefore(today)){
-        return true;
-      }else{
-        return false;
-      }
+      return appointmentDay.isBefore(today);
     } catch (e) {
-      debugPrint("Error parsing date/time: $e");
+      debugPrint("Error checking appointment date: $e");
       return false;
     }
   }
 
-  void cancelAppointment(String id, Map<String, dynamic> data) async {
-    final doctorName = data['doctorName'];
-    final appointmentDate = data['appointmentDate'];
-    final caceledSerial = data['serialNumber'];
-    await FirebaseFirestore.instance
-        .collection('appointments')
-        .doc(id)
-        .delete();
+  Future<void> _deleteAppointment(String id) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('appointments')
+          .doc(id)
+          .delete();
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint("Error deleting appointment: $e");
+    }
+  }
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('appointments')
-        .where('appointmentDate', isEqualTo: appointmentDate)
-        .where('doctorName', isEqualTo: doctorName)
-        .where('serialNumber', isGreaterThan: caceledSerial)
-        .get();
-    for (final doc in querySnapshot.docs) {
-      final currentSerial = doc['serialNumber'];
-      await doc.reference.update({'serialNumber': currentSerial - 1});
+  Future<void> _cancelAppointment(Appointment appointment) async {
+    try {
+      // First delete the appointment
+      await _deleteAppointment(appointment.id);
+
+      // Then update serial numbers for later appointments
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('appointments')
+          .where('appointmentDate', isEqualTo: appointment.appointmentDate)
+          .where('doctorName', isEqualTo: appointment.doctorName)
+          .where('serialNumber', isGreaterThan: appointment.serialNumber)
+          .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in querySnapshot.docs) {
+        batch.update(doc.reference, {
+          'serialNumber': doc['serialNumber'] - 1,
+        });
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint("Error canceling appointment: $e");
     }
   }
 }

@@ -4,6 +4,7 @@ import 'package:nubmed/Authentication/checkAdmin.dart';
 import 'package:nubmed/Widgets/normalTitle.dart';
 import 'package:nubmed/model/doctor_model.dart';
 import 'package:nubmed/pages/Admin_Pages/addOrUpdate_doctor.dart';
+import 'package:nubmed/utils/gender.dart';
 import 'package:nubmed/utils/specialization_list.dart';
 
 class DoctorsProfilePage extends StatefulWidget {
@@ -20,7 +21,7 @@ class DoctorsProfilePage extends StatefulWidget {
 }
 
 class _DoctorsProfilePageState extends State<DoctorsProfilePage> {
-  
+
   @override
   Widget build(BuildContext context) {
     final doctorInfo = widget.doctor;
@@ -61,7 +62,7 @@ class _DoctorsProfilePageState extends State<DoctorsProfilePage> {
                   borderRadius: BorderRadius.circular(16),
                   child: CachedNetworkImage(
                     imageUrl: doctorInfo.imageUrl,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.fitHeight,
                       width: double.infinity,
                       height: 250,
                       placeholder: (context,x){
@@ -107,7 +108,7 @@ class _DoctorsProfilePageState extends State<DoctorsProfilePage> {
             // Specialization
             Normal_Title(title: "Specialization"),
             Text(
-              _getSpecializationDisplayName(doctorInfo.specialization),
+              doctorInfo.specialization,
               style: _valueStyle(),
             ),
 
@@ -144,20 +145,20 @@ class _DoctorsProfilePageState extends State<DoctorsProfilePage> {
     return const TextStyle(fontSize: 16, color: Colors.black87);
   }
 
-  String _getSpecializationDisplayName(String? specString) {
-    if (specString == null || specString.isEmpty) return 'Not specified';
-
-    try {
-      // Remove enum class prefix if present
-      final cleanSpecString = specString.replaceFirst('DoctorSpecialization.', '');
-      final spec = DoctorSpecialization.values.firstWhere(
-            (e) => e.toString().endsWith(cleanSpecString),
-        orElse: () => DoctorSpecialization.all,
-      );
-      return spec.displayName;
-    } catch (e) {
-      debugPrint('Error parsing specialization: $e');
-      return specString; // Fallback to raw string if parsing fails
-    }
-  }
+  // String _getSpecializationDisplayName(String? specString) {
+  //   if (specString == null || specString.isEmpty) return 'Not specified';
+  //
+  //   try {
+  //     // Remove enum class prefix if present
+  //     final cleanSpecString = specString.replaceFirst('DoctorSpecialization.', '');
+  //     final spec = DoctorSpecialization.values.firstWhere(
+  //           (e) => e.toString().endsWith(cleanSpecString),
+  //       orElse: () => DoctorSpecialization.all,
+  //     );
+  //     return spec.displayName;
+  //   } catch (e) {
+  //     debugPrint('Error parsing specialization: $e');
+  //     return specString; // Fallback to raw string if parsing fails
+  //   }
+  // }
 }

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:nubmed/Authentication/Sign_in.dart';
 import 'package:nubmed/Widgets/showsnackBar.dart';
 import 'package:nubmed/model/user_model.dart';
-import 'package:nubmed/pages/HomePage.dart';
 import 'package:nubmed/utils/pickImage_imgbb.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -346,6 +345,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         password: _passwordController.text.trim(),
       );
 
+      await userCredential.user!.sendEmailVerification();
+
       final user = medUser(
         id: userCredential.user!.uid,
         name: _nameController.text.trim(),
@@ -358,6 +359,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         donor: _isDonor,
       );
 
+
       // Save user data to Firestore using the model
       await FirebaseFirestore.instance
           .collection('users')
@@ -365,8 +367,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           .set(user.toFirestore());
 
 
-      // Navigate to home screen on success
-      showsnakBar(context, "Successfully account created,Login Now!", false);
+      showsnakBar(context, "Account created! Please verify your email before login.", false);
+
+      await FirebaseAuth.instance.signOut();
       Navigator.pushReplacementNamed(context, Signinscreen.name);
 
     } on FirebaseAuthException catch (e) {

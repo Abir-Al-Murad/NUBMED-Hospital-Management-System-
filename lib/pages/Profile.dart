@@ -63,9 +63,9 @@ class _ProfileState extends State<Profile> {
         _tempImageUrl = null;
       });
 
-      showsnakBar(context, 'Profile updated successfully', true);
+      showsnakBar(context, 'Profile updated successfully', false);
     } catch (e) {
-      showsnakBar(context, 'Error updating profile: ${e.toString()}', false);
+      showsnakBar(context, 'Error updating profile: ${e.toString()}', true);
     } finally {
       setState(() => _isUpdating = false);
     }
@@ -352,16 +352,23 @@ class _ProfileState extends State<Profile> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          Text(
-            value.isEmpty ? 'Not provided' : value,
-            style: const TextStyle(fontSize: 16),
+          Flexible(
+            flex: 2,
+            child: Text(
+              value.isEmpty ? 'Not provided' : value,
+              style: const TextStyle(fontSize: 16),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
           ),
         ],
       ),

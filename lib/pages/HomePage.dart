@@ -1,8 +1,6 @@
-
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:nubmed/Authentication/checkAdmin.dart';
 import 'package:nubmed/Widgets/showsnackBar.dart';
@@ -35,18 +33,6 @@ class _HomepageState extends State<Homepage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   List<QueryDocumentSnapshot> _sliderDocs = [];
   bool _isLoading = true;
-  Future<void> _fetchSliderImages() async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('slider')
-          .get();
-      setState(() {
-        _sliderDocs = snapshot.docs; // Store the full document snapshots
-      });
-    } catch (e) {
-      debugPrint('Error fetching slider images: $e');
-    }
-  }
 
   @override
   void initState() {
@@ -54,10 +40,170 @@ class _HomepageState extends State<Homepage> {
     _fetchSliderImages();
   }
 
+  Future<void> _fetchSliderImages() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('slider')
+          .get();
+      setState(() {
+        _sliderDocs = snapshot.docs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching slider images: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        showsnakBar(context, "Failed to load images", true);
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteImage(DocumentSnapshot doc) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Delete"),
+        content: const Text("Are you sure you want to delete this image?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true && mounted) {
+      try {
+        setState(() {
+          _isLoading = true;
+        });
+
+        // First delete from Firestore
+        await FirebaseFirestore.instance
+            .collection('slider')
+            .doc(doc.id)
+            .delete();
+
+        // Then refresh the images
+        await _fetchSliderImages();
+
+        if (mounted) {
+          showsnakBar(context, "Image deleted successfully", false);
+        }
+      } catch (e) {
+        if (mounted) {
+          showsnakBar(context, "Failed to delete image: ${e.toString()}", true);
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _uploadNewImage() async {
+    final pickedImage = await ImgBBImagePicker.pickImage();
+    if (pickedImage == null) {
+      if (mounted) {
+        showsnakBar(context, 'No image selected', false);
+      }
+      return;
+    }
+
+    if (mounted) {
+      showsnakBar(context, 'Uploading image...', true);
+    }
+
+    try {
+      final response = await ImgBBImagePicker.uploadImage(
+        imageFile: pickedImage,
+        context: context,
+      );
+
+      if (response != null) {
+        await FirebaseFirestore.instance.collection('slider').add({
+          'image': response.imageUrl,
+          'delete_image': response.deleteUrl,
+        });
+        await _fetchSliderImages();
+        if (mounted) {
+          showsnakBar(context, 'Image uploaded successfully', false);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showsnakBar(context, "Failed to upload image: ${e.toString()}", true);
+      }
+    }
+  }
+
+  Widget buildGridItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: CircleAvatar(
+                  radius: 21,
+                  backgroundColor: color,
+                  child: Icon(icon, size: 24, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(
@@ -67,118 +213,76 @@ class _HomepageState extends State<Homepage> {
               CarouselSlider(
                 items: _sliderDocs.map((doc) {
                   final imageData = doc.data() as Map<String, dynamic>;
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: CachedNetworkImage(imageUrl: imageData['image']),
-                        ),
-                        if (Administrator.isAdminUser ||
-                            Administrator.isModeratorUser)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 4,
-                                    offset: Offset(2, 2),
-                                  ),
-                                ],
+                  return Container(
+                    height: 180,
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Center(
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: CachedNetworkImage(
+                              imageUrl: imageData['image'],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              placeholder: (context, url) => const Center(
+                                child: CircularProgressIndicator(),
                               ),
-                              child: IconButton(
-                                icon: Icon(
-                                  Icons.delete_forever_rounded,
-                                  color: Colors.red[600],
-                                  size: 25,
-                                ),
-                                tooltip: 'Delete Image',
-                                onPressed: () async {
-                                  final imageData = doc.data() as Map<String, dynamic>;
-                                  final deleteUrl = imageData['delete_image'];
-                                  print(deleteUrl);
-
-                                  bool confirmDelete = await showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12)),
-                                      title: const Text("Confirm Delete"),
-                                      content: const Text("Are you sure you want to delete this image?"),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context, false),
-                                          child: const Text("Cancel"),
-                                        ),
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context, true),
-                                          child: const Text("Delete", style: TextStyle(color: Colors.red)),
-                                        ),
-                                      ],
-                                    ),
-                                  ) ??
-                                      false;
-
-                                  if (confirmDelete) {
-                                    await FirebaseFirestore.instance.collection('slider').doc(doc.id).delete();
-                                    await _fetchSliderImages(); // Refresh
-                                  }
-                                },
-                              ),
+                              errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
                             ),
                           ),
-
-                      ],
+                          if (Administrator.isAdminUser ||
+                              Administrator.isModeratorUser)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 4,
+                                      offset: Offset(2, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.delete_forever_rounded,
+                                    color: Colors.red[600],
+                                    size: 25,
+                                  ),
+                                  onPressed: () => _confirmDeleteImage(doc),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   );
                 }).toList(),
                 options: CarouselOptions(
+                  height: 200,
                   aspectRatio: 16 / 9,
-                  viewportFraction: 0.9,
+                  viewportFraction: 0.8,
                   autoPlay: true,
                   enlargeCenterPage: true,
-                  autoPlayCurve: Curves.easeInCubic,
-                  enlargeFactor: 0.5
+                  autoPlayCurve: Curves.fastOutSlowIn,
                 ),
               ),
-              if (Administrator.isAdminUser || Administrator.isModeratorUser)
+              if (Administrator.isAdminUser ||
+                  Administrator.isModeratorUser)
                 Center(
                   child: ElevatedButton(
-                    onPressed: () async {
-                      final pickedImage = await ImgBBImagePicker.pickImage();
-                      if (pickedImage == null) {
-                        showsnakBar(context, 'No image selected', false);
-                        return;
-                      }
-
-                      showsnakBar(context, 'Uploading image...', true);
-                      final response = await ImgBBImagePicker.uploadImage(
-                          imageFile: pickedImage,
-                          context: context
-                      );
-
-                      if (response != null) {
-                        await FirebaseFirestore.instance.collection('slider').add({
-                          'image': response.imageUrl,
-                          'delete_image': response.deleteUrl,
-                        });
-                        await _fetchSliderImages(); // Refresh the list
-                        showsnakBar(context, 'Image uploaded successfully', true);
-                      }
-                    },
+                    onPressed: _uploadNewImage,
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      minimumSize: Size(200, 45),
+                      minimumSize: const Size(200, 45),
                     ),
                     child: Text(
                       "Add Image",
@@ -203,7 +307,7 @@ class _HomepageState extends State<Homepage> {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   buildGridItem(
                     icon: Icons.person,
@@ -218,7 +322,7 @@ class _HomepageState extends State<Homepage> {
                     label: "Lab Test",
                     color: Colors.orange,
                     onTap: () {
-                     Navigator.push(
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const LabTestPage(),
@@ -253,8 +357,10 @@ class _HomepageState extends State<Homepage> {
                     color: Colors.brown,
                     onTap: () {
                       (Administrator.isAdminUser)
-                          ? Navigator.pushNamed(context, AdminMedicinePage.name)
-                          : Navigator.pushNamed(context, MedicinePage.name);
+                          ? Navigator.pushNamed(
+                          context, AdminMedicinePage.name)
+                          : Navigator.pushNamed(
+                          context, MedicinePage.name);
                     },
                   ),
                   buildGridItem(
@@ -275,12 +381,11 @@ class _HomepageState extends State<Homepage> {
                     label: "Health Tips",
                     color: Colors.green,
                     onTap: () {
-                      print(Administrator.isAdminUser);
                       Administrator.isAdminUser == true
                           ? Navigator.pushNamed(
-                              context,
-                              AdminHealthTipsPage.name,
-                            )
+                        context,
+                        AdminHealthTipsPage.name,
+                      )
                           : Navigator.pushNamed(context, HealthTips.name);
                     },
                   ),
@@ -289,10 +394,10 @@ class _HomepageState extends State<Homepage> {
                     label: "History",
                     color: Colors.blueGrey,
                     onTap: () {
-                      // When you want to open the history screen
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const HistoryPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const HistoryPage()),
                       );
                     },
                   ),
@@ -303,7 +408,8 @@ class _HomepageState extends State<Homepage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SupportScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const SupportScreen()),
                       );
                     },
                   ),
@@ -314,7 +420,8 @@ class _HomepageState extends State<Homepage> {
                       label: "Patients Appointments",
                       color: Colors.blue,
                       onTap: () {
-                        Navigator.pushNamed(context, AvailableDoctorList.name);
+                        Navigator.pushNamed(
+                            context, AvailableDoctorList.name);
                       },
                     ),
                 ],
@@ -325,84 +432,4 @@ class _HomepageState extends State<Homepage> {
       ),
     );
   }
-}
-
-// Future<void> _uploadImage(BuildContext context) async {
-//   final scaffoldMessenger = ScaffoldMessenger.of(context);
-//   final result = await ImagePickerHelper.pickImage();
-//
-//   if (result == null) {
-//     scaffoldMessenger.showSnackBar(
-//       const SnackBar(content: Text('No image selected')),
-//     );
-//     return;
-//   }
-//
-//   try {
-//     await FirebaseFirestore.instance.collection("slider").add({
-//       "image_url": result.base64String,
-//       "file_name": result.fileName,
-//       "file_size": result.fileSize,
-//       "uploaded_at": FieldValue.serverTimestamp(),
-//     });
-//
-//     // Show success
-//     scaffoldMessenger.showSnackBar(
-//       const SnackBar(content: Text('Image uploaded successfully!')),
-//     );
-//   } catch (e, stackTrace) {
-//     debugPrint('Upload error: $e\n$stackTrace');
-//     scaffoldMessenger.showSnackBar(
-//       SnackBar(content: Text('Upload failed: ${e.toString()}')),
-//     );
-//   }
-// }
-
-Widget buildGridItem({
-  required IconData icon,
-  required String label,
-  required Color color,
-  required VoidCallback onTap,
-}) {
-  return InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(16),
-    child: Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(8), // slightly reduced padding
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: CircleAvatar(
-                radius: 21,
-                backgroundColor: color,
-                child: Icon(icon, size: 24, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
 }

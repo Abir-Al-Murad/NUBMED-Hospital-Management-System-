@@ -7,6 +7,7 @@ import 'package:nubmed/Widgets/normalTitle.dart';
 import 'package:nubmed/Widgets/showsnackBar.dart';
 import 'package:nubmed/pages/Doctor_Page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
+import 'package:nubmed/utils/gender.dart';
 import 'package:nubmed/utils/pickImage_imgbb.dart';
 import 'package:nubmed/utils/specialization_list.dart';
 import '../../model/doctor_model.dart';
@@ -28,6 +29,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
   XFile? selectedPhoto;
   String? imageString;
   bool _loading = false;
+  String? selectedGender;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _degreeController = TextEditingController();
@@ -38,7 +40,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
 
   List<String> selectedDays = [];
   String? visitingTime;
-  DoctorSpecialization? selectedSpecialization;
+  String? selectedSpecialization;
 
   List<String> allDays = [
     'Saturday',
@@ -59,6 +61,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
   }
 
   void _initializeWithDoctorData() {
+    print(selectedGender);
     final doctor = widget.doctor!;
     _nameController.text = doctor.name;
     _degreeController.text = doctor.degree;
@@ -70,12 +73,18 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
     visitingTime = doctor.visitingTime;
     imageString = doctor.imageUrl;
 
+    // Handle gender initialization
+    selectedGender = Gender.genderList.contains(doctor.gender)
+        ? doctor.gender
+        : null;
+
+    // Handle specialization initialization
     if (doctor.specialization.isNotEmpty) {
       try {
-        selectedSpecialization = DoctorSpecialization.values.firstWhere(
+        selectedSpecialization = Specialization.doctor_specializaton.firstWhere(
               (e) => e.toString() == doctor.specialization,
         );
-        if (selectedSpecialization == DoctorSpecialization.all) {
+        if (selectedSpecialization == 'All') {
           selectedSpecialization = null;
         }
       } catch (e) {
@@ -86,6 +95,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
 
   @override
   Widget build(BuildContext context) {
+    print(selectedGender);
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -114,9 +124,8 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
   }
 
   Widget _buildImagePickerSection() {
-    return GestureDetector(
-      onTap: _handleImageSelection,
-      child: Container(
+    return Stack(
+      children:[ Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           color: Colors.white,
@@ -130,7 +139,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
             imageUrl: imageString!,
             height: 180,
             width: double.infinity,
-            fit: BoxFit.cover,
+            fit: BoxFit.fitHeight,
             errorWidget: (context, url, error) => _buildPlaceholderImage(),
             placeholder: (context, url) => const Center(
               child: CircularProgressIndicator(),
@@ -139,6 +148,22 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
         )
             : _buildPlaceholderImage(),
       ),
+        Align(
+          alignment: Alignment.bottomRight,
+          child: GestureDetector(
+            onTap: _handleImageSelection,
+            child: Container(
+              padding: EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10)),
+                color: Color_codes.meddle,
+
+              ),
+              child: Icon(Icons.edit,color: Colors.white,),
+            ),
+          ),
+        )
+      ]
     );
   }
 
@@ -160,6 +185,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
         _buildTextFormField("Designation", _designationController, "Enter Designation"),
         _buildTextFormField("Hospital", _hospitalController, "Enter Hospital"),
         _buildSpecializationDropdown(),
+        _buildGenderDropdown(),
         _buildTextFormField("Email", _emailController, "Enter email address"),
         _buildTextFormField("Phone Number", _phoneController, "Enter Phone Number"),
         const Normal_Title(title: "Visiting Days"),
@@ -186,11 +212,14 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
   }
 
   Widget _buildSpecializationDropdown() {
+    final uniqueSpecializations = Set<String>.from(
+        Specialization.doctor_specializaton.where((e) => e != "All")
+    ).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Normal_Title(title: "Specialization"),
-        DropdownButtonFormField<DoctorSpecialization>(
+        DropdownButtonFormField<String>(
           value: selectedSpecialization,
           hint: const Text(
             "Select Specialization",
@@ -223,13 +252,11 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
               vertical: 12.0,
             ),
           ),
-          items: DoctorSpecialization.values
-              .where((e) => e != DoctorSpecialization.all)
-              .map(
+          items: uniqueSpecializations.map(
                 (e) => DropdownMenuItem(
               value: e,
               child: Text(
-                e.displayName,
+                e,
                 style: const TextStyle(fontSize: 12.0),
               ),
             ),
@@ -237,6 +264,65 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
               .toList(),
           onChanged: (value) => setState(() => selectedSpecialization = value),
           validator: (value) => value == null ? 'Please select specialization' : null,
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+  Widget _buildGenderDropdown() {
+    // Ensure the selected gender exists in the list
+    final validGender = Gender.genderList.contains(selectedGender)
+        ? selectedGender
+        : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Normal_Title(title: "Gender"),
+        DropdownButtonFormField<String>(
+          value: validGender,
+          hint: const Text(
+            "Select Gender",
+            style: TextStyle(fontSize: 14.0),
+          ),
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(
+                color: Color_codes.meddle,
+                width: 1.5,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(
+                color: Color_codes.meddle,
+                width: 1.5,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: BorderSide(
+                color: Color_codes.meddle,
+                width: 2,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10.0,
+              vertical: 12.0,
+            ),
+          ),
+          items: Gender.genderList.map(
+                (e) => DropdownMenuItem(
+              value: e,
+              child: Text(
+                e,
+                style: const TextStyle(fontSize: 12.0),
+              ),
+            ),
+          ).toList(),
+          onChanged: (value) => setState(() => selectedGender = value),
+          validator: (value) => value == null ? 'Please select gender' : null,
         ),
         const SizedBox(height: 8),
       ],
@@ -277,7 +363,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
           visible: !_loading,
           replacement: const Center(child: CircularProgressIndicator()),
           child: FilledButton(
-            onPressed: widget.doctor == null ? _saveForm : _updateInformation,
+            onPressed: _saveForm,
             child: Text(widget.doctor == null ? "Save" : "Update"),
           ),
         ),
@@ -337,7 +423,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
             .delete();
 
         if (mounted) {
-          showsnakBar(context, "${doctor.name} deleted", true);
+          showsnakBar(context, "${doctor.name} deleted", false);
           Navigator.pushNamedAndRemoveUntil(
             context,
             DoctorPage.name,
@@ -346,7 +432,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
         }
       } catch (e) {
         if (mounted) {
-          showsnakBar(context, "Delete failed: ${e.toString()}", false);
+          showsnakBar(context, "Delete failed: ${e.toString()}", true);
         }
       }
     }
@@ -370,19 +456,27 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
   void _saveForm() {
     if (_formKey.currentState!.validate()) {
       if (selectedDays.isEmpty) {
-        showsnakBar(context, "Please select at least one visiting day", false);
+        showsnakBar(context, "Please select at least one visiting day", true);
         return;
       }
       if (visitingTime == null) {
-        showsnakBar(context, "Please select a visiting time", false);
+        showsnakBar(context, "Please select a visiting time", true);
         return;
       }
       if (selectedSpecialization == null) {
-        showsnakBar(context, 'Please select specialization', false);
+        showsnakBar(context, 'Please select specialization', true);
         return;
       }
+      if (selectedGender == null) {
+        showsnakBar(context, 'Please select gender', true);
+        return;
+      }
+      if(widget.doctor == null){
+        _saveDoctorInformation();
 
-      _saveDoctorInformation();
+      }else{
+        _updateInformation();
+      }
     }
   }
 
@@ -395,6 +489,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
         hospital: _hospitalController.text.trim(),
         imageUrl: imageString ?? '',
         name: _nameController.text.trim(),
+        gender: selectedGender??"",
         phone: _phoneController.text.trim(),
         specialization: selectedSpecialization.toString(),
         visitingTime: visitingTime!,
@@ -406,7 +501,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
           .add(doctor.toFirestore());
 
       if (mounted) {
-        showsnakBar(context, "Doctor Saved Successfully!", true);
+        showsnakBar(context, "Doctor Saved Successfully!", false);
         Navigator.pushNamedAndRemoveUntil(
           context,
           DoctorPage.name,
@@ -415,7 +510,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
       }
     } on FirebaseException catch (e) {
       if (mounted) {
-        showsnakBar(context, "Error: $e", false);
+        showsnakBar(context, "Error: $e", true);
       }
     }
   }
@@ -435,6 +530,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
         hospital: _hospitalController.text.trim(),
         imageUrl: imageString ?? widget.doctor!.imageUrl,
         name: _nameController.text.trim(),
+        gender: selectedGender ??"",
         phone: _phoneController.text.trim(),
         specialization: selectedSpecialization.toString(),
         visitingTime: visitingTime!,
@@ -448,13 +544,13 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
 
       _loading = false;
       if (mounted) {
-        showsnakBar(context, "Doctor Information Updated Successfully", true);
+        showsnakBar(context, "Doctor Information Updated Successfully", false);
         Navigator.pop(context, updatedDoctor);
       }
     } on FirebaseException catch (e) {
       if (mounted) {
         _loading = false;
-        showsnakBar(context, "Error: $e", false);
+        showsnakBar(context, "Error: $e", true);
       }
     }
   }

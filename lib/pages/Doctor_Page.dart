@@ -25,8 +25,9 @@ class DoctorPage extends StatefulWidget {
 }
 
 class _DoctorPageState extends State<DoctorPage> {
-  DoctorSpecialization? selectedSpecialization;
+  String? selectedSpecialization;
   Future<List<Doctor>>? _doctorsFuture;
+
 
   Future<DateTime?> showDoctorAppointmentPicker(
       BuildContext context,
@@ -148,7 +149,7 @@ class _DoctorPageState extends State<DoctorPage> {
 
           final filteredDocs =
           (selectedSpecialization == null ||
-              selectedSpecialization!.displayName == 'All')
+              selectedSpecialization == 'All')
               ? doctors
               : doctors.where((d) {
             return d.specialization == selectedSpecialization.toString();
@@ -160,7 +161,7 @@ class _DoctorPageState extends State<DoctorPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 5.0),
-                DropdownButtonFormField<DoctorSpecialization>(
+                DropdownButtonFormField<String>(
                   value: selectedSpecialization,
                   hint: const Text(
                     "Select Specialization",
@@ -193,12 +194,12 @@ class _DoctorPageState extends State<DoctorPage> {
                       vertical: 12.0,
                     ),
                   ),
-                  items: DoctorSpecialization.values
+                  items: Specialization.doctor_specializaton
                       .map(
                         (e) => DropdownMenuItem(
                       value: e,
                       child: Text(
-                        e.displayName,
+                        e,
                         style: const TextStyle(fontSize: 12.0),
                       ),
                     ),

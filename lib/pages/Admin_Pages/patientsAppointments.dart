@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:nubmed/model/appointment_model.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 
 class PatientsAppointments extends StatefulWidget {
@@ -30,7 +31,7 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
     super.dispose();
   }
 
-  Stream<QuerySnapshot> get _filteredAppointments {
+  Stream<List<Appointment>> get _filteredAppointments {
     Query query = _firestore.collection('appointments')
         .where('doctorName', isEqualTo: widget.doctorName)
         .orderBy('serialNumber');
@@ -50,7 +51,9 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
           .where('appointmentDate', isLessThanOrEqualTo: todayEnd);
     }
 
-    return query.snapshots();
+    return query.snapshots().map((snapshot) =>
+        snapshot.docs.map((doc) => Appointment.fromFirestore(doc)).toList()
+    );
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -104,26 +107,19 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Showing appointments for: ${DateFormat('MMMM d, y').format(_selectedDate!)}',
+                    'Appointments for: ${DateFormat('MMMM d, y').format(_selectedDate!)}',
                     style: TextStyle(
                       fontSize: 16,
                       color: Color_codes.deep_plus,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: Colors.red),
-                    onPressed: () {
-                      setState(() {
-                        _selectedDate = null;
-                      });
-                    },
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
+            child: StreamBuilder<List<Appointment>>(
               stream: _filteredAppointments,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
@@ -134,7 +130,9 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (snapshot.data!.docs.isEmpty) {
+                final appointments = snapshot.data ?? [];
+
+                if (appointments.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -155,11 +153,10 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: snapshot.data!.docs.length,
+                  itemCount: appointments.length,
                   itemBuilder: (context, index) {
-                    final appointment = snapshot.data!.docs[index];
-                    final data = appointment.data() as Map<String, dynamic>;
-                    final isVisited = data['visited'] == true;
+                    final appointment = appointments[index];
+                    final isVisited = appointment.visited;
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -191,7 +188,7 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          data['userName'] ?? 'Unknown Patient',
+                                          appointment.userName,
                                           style: const TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -199,7 +196,7 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'ID: ${data['student_id'] ?? 'N/A'}',
+                                          'ID: ${appointment.userStudentId}',
                                           style: TextStyle(
                                             fontSize: 14,
                                             color: Colors.grey.shade600,
@@ -236,19 +233,19 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
                                 children: [
                                   _buildInfoItem(
                                     icon: Icons.calendar_today,
-                                    text: _formatDate(data['appointmentDate']),
+                                    text: appointment.formattedAppointmentDate,
                                     color: Color_codes.deep_plus,
                                   ),
                                   const SizedBox(width: 16),
                                   _buildInfoItem(
                                     icon: Icons.schedule,
-                                    text: data['visiting_time'] ?? 'N/A',
+                                    text: appointment.visitingTime,
                                     color: Colors.blue.shade700,
                                   ),
                                   const SizedBox(width: 16),
                                   _buildInfoItem(
                                     icon: Icons.format_list_numbered,
-                                    text: 'Serial: ${data['serialNumber']}',
+                                    text: 'Serial: ${appointment.serialNumber}',
                                     color: Colors.orange.shade700,
                                   ),
                                 ],
@@ -270,7 +267,7 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
                                         ),
                                       ),
                                       onPressed: () =>
-                                          _updateAppointmentStatus(appointment.id, true),
+                                          _updateAppointmentStatus(appointment, true),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -287,7 +284,7 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
                                         ),
                                       ),
                                       onPressed: () =>
-                                          _updateAppointmentStatus(appointment.id, false),
+                                          _updateAppointmentStatus(appointment, false),
                                     ),
                                   ),
                                 ],
@@ -328,25 +325,18 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
     );
   }
 
-  String _formatDate(dynamic date) {
-    if (date == null) return 'N/A';
-    if (date is Timestamp) {
-      return DateFormat('MMM d').format(date.toDate());
-    }
-    return date.toString();
-  }
-
   Future<void> _updateAppointmentStatus(
-      String appointmentId, bool visited) async {
+      Appointment appointment, bool visited) async {
     try {
-      await _firestore.collection('appointments').doc(appointmentId).update({
+      await _firestore.collection('appointments').doc(appointment.id).update({
         'visited': visited,
         'processedBy': _auth.currentUser?.uid,
         'processedAt': FieldValue.serverTimestamp(),
       });
 
-      await _sendNotificationToPatient(appointmentId, visited);
+      await _sendNotificationToPatient(appointment, visited);
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -359,6 +349,7 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${e.toString()}'),
@@ -370,22 +361,14 @@ class _PatientsAppointmentsState extends State<PatientsAppointments> {
   }
 
   Future<void> _sendNotificationToPatient(
-      String appointmentId, bool visited) async {
-    final appointment = await _firestore
-        .collection('appointments')
-        .doc(appointmentId)
-        .get();
-    final patientId = appointment.data()?['userId'];
-
-    if (patientId != null) {
-      await _firestore.collection('notifications').add({
-        'userId': patientId,
-        'title': 'Appointment Status',
-        'message':
-        'Your appointment has been marked as ${visited ? 'Visited' : 'Absent'}',
-        'timestamp': FieldValue.serverTimestamp(),
-        'read': false,
-      });
-    }
+      Appointment appointment, bool visited) async {
+    await _firestore.collection('notifications').add({
+      'userId': appointment.userId,
+      'title': 'Appointment Status',
+      'message':
+      'Your appointment has been marked as ${visited ? 'Visited' : 'Absent'}',
+      'timestamp': FieldValue.serverTimestamp(),
+      'read': false,
+    });
   }
 }

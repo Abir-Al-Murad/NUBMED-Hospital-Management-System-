@@ -1,16 +1,17 @@
 import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
 
 class Doctor {
-  final String? id; // Add document ID field
+  final String? id;
   final String degree;
   final String designation;
   final String email;
   final String hospital;
-  final String imageUrl; // Changed from image_url for consistency
+  final String imageUrl;
   final String name;
   final String phone;
   final String specialization;
   final String visitingTime;
+  final String gender;
   final List<String> visitingDays;
 
   Doctor({
@@ -21,6 +22,7 @@ class Doctor {
     required this.hospital,
     required this.imageUrl,
     required this.name,
+    required this.gender,
     required this.phone,
     required this.specialization,
     required this.visitingTime,
@@ -37,6 +39,7 @@ class Doctor {
       hospital: data['hospital'] ?? '',
       imageUrl: data['image_url'] ?? '',
       name: data['name'] ?? '',
+      gender: data['gender']??'',
       phone: data['phone'] ?? '',
       specialization: data['specialization'] ?? '',
       visitingTime: data['visiting_time'] ?? '',
@@ -52,6 +55,7 @@ class Doctor {
       'hospital': hospital,
       'image_url': imageUrl,
       'name': name,
+      'gender':gender,
       'phone': phone,
       'specialization': specialization,
       'visiting_time': visitingTime,
