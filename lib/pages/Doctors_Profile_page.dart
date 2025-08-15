@@ -4,8 +4,6 @@ import 'package:nubmed/Authentication/checkAdmin.dart';
 import 'package:nubmed/Widgets/normalTitle.dart';
 import 'package:nubmed/model/doctor_model.dart';
 import 'package:nubmed/pages/Admin_Pages/addOrUpdate_doctor.dart';
-import 'package:nubmed/utils/gender.dart';
-import 'package:nubmed/utils/specialization_list.dart';
 
 class DoctorsProfilePage extends StatefulWidget {
   DoctorsProfilePage({

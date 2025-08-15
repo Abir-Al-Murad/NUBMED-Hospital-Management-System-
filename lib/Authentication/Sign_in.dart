@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:nubmed/Authentication/checkAdmin.dart';
+import 'package:nubmed/Authentication/forget_password.dart';
 import 'package:nubmed/Authentication/sign_up_screen.dart';
 import 'package:nubmed/WidgetTree.dart';
 import 'package:nubmed/Widgets/screen_background.dart';
@@ -80,7 +81,26 @@ class _SigninscreenState extends State<Signinscreen> {
                       child: Text("Sign in"),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  SignUpScreen.emailSent ? Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      Text(
+                        'Account activation email sent!',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'We\'ve sent an activation link to your email address.\n'
+                            'Please check your inbox and spam folder if you don\'t see it within a few minutes.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ) : const SizedBox(height: 32),
                   Center(
                     child: Column(
                       children: [
@@ -165,6 +185,6 @@ class _SigninscreenState extends State<Signinscreen> {
   }
 
   void _onTapForgotPasswordButton() {
-    // Navigator.pushNamed(context, Forgot_Password_Email.name);
+    Navigator.pushNamed(context, ForgetPassword.name);
   }
 }

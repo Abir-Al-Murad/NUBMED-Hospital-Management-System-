@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:nubmed/model/user_model.dart';
+import 'package:nubmed/pages/Details/user_details_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -12,6 +15,7 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void dispose() {
@@ -22,6 +26,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       body: Column(
         children: [
           Padding(
@@ -87,7 +92,8 @@ class _SearchPageState extends State<SearchPage> {
                 return ListView.builder(
                   itemCount: users.length,
                   itemBuilder: (context, index) {
-                    final user = users[index].data() as Map<String, dynamic>;
+                    final userDoc = users[index];
+                    final user = medUser.fromFirestore(userDoc);
                     return _buildUserCard(user);
                   },
                 );
@@ -99,41 +105,49 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildUserCard(Map<String, dynamic> user) {
+  Widget _buildUserCard(medUser user) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.red[100],
-          backgroundImage: user['photo_url']?.isNotEmpty == true
-              ? NetworkImage(user['photo_url'])
+          backgroundColor: Colors.cyan[100],
+          backgroundImage: user.photoUrl.isNotEmpty
+              ? NetworkImage(user.photoUrl)
               : null,
-          child: user['photo_url']?.isNotEmpty != true
-              ? Text(user['name']?.isNotEmpty == true
-              ? user['name'][0].toUpperCase()
+          child: user.photoUrl.isEmpty
+              ? Text(user.name.isNotEmpty
+              ? user.name[0].toUpperCase()
               : '?')
               : null,
         ),
         title: Text(
-          user['name'] ?? 'Unknown',
+          user.name,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Blood Group: ${user['blood_group'] ?? 'Not specified'}'),
-            Text('Student ID: ${user['student_id'] ?? 'N/A'}'),
-            if (user['phone'] != null) Text('Phone: ${user['phone']}'),
+            Text('Blood Group: ${user.bloodGroup}'),
+            Text('Student ID: ${user.studentId}'),
+            if (user.phone.isNotEmpty) Text('Phone: ${user.phone}'),
           ],
         ),
-        trailing: user['donor'] == true
+        trailing: user.donor
             ? Chip(
           backgroundColor: Colors.red[50],
           label: const Text('Donor'),
         )
             : null,
         onTap: () {
-          // You can add navigation to user details page here
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserDetailsPage(
+                user: user,
+                currentUserId: _auth.currentUser?.uid ?? '',
+              ),
+            ),
+          );
         },
       ),
     );

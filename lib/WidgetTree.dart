@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:nubmed/pages/HomePage.dart';
 import 'package:nubmed/pages/Profile.dart';
+import 'package:nubmed/pages/inbox.dart';
 import 'package:nubmed/pages/notifications_page.dart';
 import 'package:nubmed/pages/search_page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
@@ -24,6 +25,7 @@ class _WidgetTreeState extends State<WidgetTree> {
   final List<Widget> _screens = [
     const Homepage(),
     const SearchPage(),
+    const InboxPage(),
     const NotificationsPage(),
   ];
 
@@ -146,6 +148,11 @@ class _WidgetTreeState extends State<WidgetTree> {
           icon: Icon(Icons.search_outlined),
           activeIcon: Icon(Icons.search),
           label: "Search",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.messenger_outline),
+          activeIcon: Icon(Icons.messenger),
+          label: "Inbox",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.notifications_outlined),

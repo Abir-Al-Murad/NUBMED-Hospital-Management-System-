@@ -1,7 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nubmed/Authentication/Sign_in.dart';
+import 'package:nubmed/Authentication/forget_password.dart';
 import 'package:nubmed/Authentication/sign_up_screen.dart';
 import 'package:nubmed/WidgetTree.dart';
 import 'package:nubmed/pages/Admin_Pages/AdminHealthTipsPage.dart';
@@ -19,12 +23,19 @@ import 'package:nubmed/utils/Color_codes.dart';
 
 import 'firebase_options.dart';
 
+
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message)async{
+  await Firebase.initializeApp();
+  print("Background Message: ${message.notification?.title}");
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform, // ✅ This is required for web!
   );
-  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(NUBMED());
 }
 
@@ -98,6 +109,7 @@ class NUBMED extends StatelessWidget {
         AddOrUpdateNewDoctor.name:(context)=>AddOrUpdateNewDoctor(),
         AvailableDoctorList.name:(context)=>AvailableDoctorList(),
         EmergencyScreen.name:(context)=>EmergencyScreen(),
+        ForgetPassword.name:(context)=>ForgetPassword(),
       },
     );
   }

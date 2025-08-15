@@ -9,6 +9,7 @@ import 'package:nubmed/utils/pickImage_imgbb.dart';
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
   static String name = '/sign-up';
+  static bool emailSent = false;
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -366,7 +367,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           .doc(user.id)
           .set(user.toFirestore());
 
-
+      SignUpScreen.emailSent = true;
       showsnakBar(context, "Account created! Please verify your email before login.", false);
 
       await FirebaseAuth.instance.signOut();

@@ -1,6 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nubmed/Authentication/checkAdmin.dart';
+import 'package:nubmed/model/user_model.dart';
+import 'package:nubmed/pages/Details/user_details_page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -48,87 +54,113 @@ class _BloodPageState extends State<BloodPage> {
     );
   }
 
-  Widget _buildDonorItem(Map<String, dynamic> data) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: Colors.red.shade50,
-              child: Icon(Icons.person, size: 30, color: Colors.red),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    data['name'] ?? 'Anonymous Donor',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
+  Widget _buildDonorItem(medUser user) {
+    return InkWell(
+      onTap: (){
+        Navigator.push(context, MaterialPageRoute(builder: (context)=>UserDetailsPage(user: user, currentUserId: FirebaseAuth.instance.currentUser!.uid)));
+      },
+      child: Card(
+        elevation: 2,
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.cyan.shade50,
+                child: user.photoUrl.isEmpty
+                    ? Icon(
+                  Icons.person,
+                  color: Color_codes.deep,
+                  size: 28, // Match the radius size
+                )
+                    : ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: user.photoUrl,
+                    fit: BoxFit.cover,
+                    width: 56,
+                    height: 56,
+                    placeholder: (context, url) => CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.pinkAccent,
+                    ),
+                    errorWidget: (context, url, error) => Icon(
+                      Icons.error,
+                      color: Colors.cyan[100],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  if (data['phone']?.isNotEmpty ?? false)
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      data['phone'],
-                      style: const TextStyle(fontSize: 15),
-                    ),
-                  if (data['email']?.isNotEmpty ?? false)
-                    Text(
-                      data['email'],
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
+                      user.name,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                ],
-              ),
-            ),
-            Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    data['blood_group'] ?? '',
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                    const SizedBox(height: 4),
+                    if (user.phone.isNotEmpty)
+                      Text(
+                        user.phone,
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    if (user.email.isNotEmpty)
+                      Text(
+                        user.email,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.call, size: 16),
-                  label: const Text("Call"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color_codes.deep_plus,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
+              ),
+              Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    elevation: 0,
+                    child: Text(
+                      user.bloodGroup,
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  onPressed: () => _makePhoneCall(data['phone'] ?? ''),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.call, size: 16),
+                    label: const Text("Call"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color_codes.deep_plus,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      elevation: 0,
+                    ),
+                    onPressed: () => _makePhoneCall(user.phone),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -209,8 +241,9 @@ class _BloodPageState extends State<BloodPage> {
               itemCount: donors.length,
               itemBuilder: (context, index) {
                 final donor = donors[index];
-                final data = donor.data() as Map<String, dynamic>;
-                return _buildDonorItem(data);
+                final meduserData = medUser.fromFirestore(donor);
+                print(meduserData);
+                return _buildDonorItem(meduserData);
               },
             );
           },

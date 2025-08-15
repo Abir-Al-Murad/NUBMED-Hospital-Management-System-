@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:nubmed/Authentication/Sign_in.dart';
@@ -16,17 +17,18 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+
+
+
   Future<void> _navigateBasedOnAuth() async {
     bool updated = await UpdateChecker(context).checkForUpdate();
     if(updated){
       return;
     }
-    await Future.delayed(const Duration(seconds: 2));
 
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-
       await Administrator.isAdmin(user.email!);
       await Administrator.isModerator(user.email!);
       await Specialization.fetchSpecialization();
