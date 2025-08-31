@@ -1,0 +1,24 @@
+[33m2b7a7d2[m[33m ([m[1;36mHEAD[m[33m, [m[1;31mnubmed/main[m[33m)[m HEAD@{0}: pull nubmed main --rebase (start): checkout 2b7a7d21ac46542c1f06da5c4dca771500ff13df
+[33m68c06ec[m[33m ([m[1;32mmain[m[33m)[m HEAD@{1}: commit: doctor page updated,print option enabled
+[33m3b9f2a1[m[33m ([m[1;31morigin/riverpod[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mriverpod[m[33m)[m HEAD@{2}: checkout: moving from main to main
+[33m3b9f2a1[m[33m ([m[1;31morigin/riverpod[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mriverpod[m[33m)[m HEAD@{3}: checkout: moving from riverpod to main
+[33m3b9f2a1[m[33m ([m[1;31morigin/riverpod[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mriverpod[m[33m)[m HEAD@{4}: reset: moving to main
+[33m3b9f2a1[m[33m ([m[1;31morigin/riverpod[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mriverpod[m[33m)[m HEAD@{5}: checkout: moving from riverpod to riverpod
+[33m3b9f2a1[m[33m ([m[1;31morigin/riverpod[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mriverpod[m[33m)[m HEAD@{6}: reset: moving to main
+[33m9aacd21[m HEAD@{7}: checkout: moving from riverpod to riverpod
+[33m9aacd21[m HEAD@{8}: checkout: moving from main to riverpod
+[33m3b9f2a1[m[33m ([m[1;31morigin/riverpod[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mriverpod[m[33m)[m HEAD@{9}: commit: Inbox added
+[33m9aacd21[m HEAD@{10}: checkout: moving from riverpod to main
+[33m9aacd21[m HEAD@{11}: checkout: moving from main to riverpod
+[33m9aacd21[m HEAD@{12}: checkout: moving from main to main
+[33m9aacd21[m HEAD@{13}: checkout: moving from riverpod to main
+[33m9aacd21[m HEAD@{14}: checkout: moving from main to riverpod
+[33m9aacd21[m HEAD@{15}: checkout: moving from riverpod to main
+[33m9aacd21[m HEAD@{16}: checkout: moving from main to riverpod
+[33m9aacd21[m HEAD@{17}: commit: splash,email verification,version check added
+[33m2df103f[m HEAD@{18}: commit: important
+[33mfb69253[m HEAD@{19}: commit: admin panel second commit
+[33mfa72aff[m HEAD@{20}: commit: admin panel first commit
+[33m092924f[m HEAD@{21}: commit: admin panel first commit
+[33m3a9e1c0[m HEAD@{22}: Branch: renamed refs/heads/master to refs/heads/main
+[33m3a9e1c0[m HEAD@{24}: commit (initial): Initial commit
