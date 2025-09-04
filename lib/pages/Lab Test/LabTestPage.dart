@@ -322,6 +322,7 @@ class _LabTestPageState extends State<LabTestPage> {
                           serial: serialSnapshot.docs.length + 1,
                           isDone: false,
                           timestamp: DateTime.now(),
+                          report: '',
                         );
 
                         await FirebaseFirestore.instance

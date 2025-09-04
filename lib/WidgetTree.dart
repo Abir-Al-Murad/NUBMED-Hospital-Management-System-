@@ -1,10 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:nubmed/pages/Chat/inbox.dart';
 import 'package:nubmed/pages/HomePage.dart';
 import 'package:nubmed/pages/Profile.dart';
-import 'package:nubmed/pages/inbox.dart';
-import 'package:nubmed/pages/notifications_page.dart';
-import 'package:nubmed/pages/search_page.dart';
+import 'package:nubmed/pages/Notification/notifications_page.dart';
+import 'package:nubmed/pages/Search/search_page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 import 'package:nubmed/utils/fetchImage.dart';
 

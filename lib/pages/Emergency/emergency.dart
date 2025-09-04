@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../model/emergency.dart';
+import '../../model/emergency.dart';
 
 class EmergencyScreen extends StatelessWidget {
   static String name = '/emergency';

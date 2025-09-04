@@ -114,22 +114,6 @@ class _MedicinePageState extends State<MedicinePage> {
                       onChanged: (value) => setState(() => _searchTerm = value),
                     ),
                     const SizedBox(height: 12),
-                    // DropdownButtonFormField<String>(
-                    //   value: _filterCategory,
-                    //   items: ['All', 'Tablet', 'Syrup', 'Capsule', 'Injection', 'Drops']
-                    //       .map((category) => DropdownMenuItem(
-                    //     value: category,
-                    //     child: Text(category),
-                    //   ))
-                    //       .toList(),
-                    //   onChanged: (value) => setState(() => _filterCategory = value!),
-                    //   decoration: InputDecoration(
-                    //     labelText: 'Category',
-                    //     border: OutlineInputBorder(
-                    //       borderRadius: BorderRadius.circular(12),
-                    //     ),
-                    //   ),
-                    // ),
                   ],
                 ),
               ),

@@ -25,7 +25,7 @@ class _AppointmentpageState extends State<Appointmentpage> {
 
     final Stream<QuerySnapshot> userAppointments = FirebaseFirestore.instance
         .collection('appointments')
-        .where('userId', isEqualTo: currentUser.uid)
+        .where('userId', isEqualTo: currentUser.uid).where('visited',isEqualTo: false)
         .orderBy('timestamp', descending: true)
         .snapshots();
 

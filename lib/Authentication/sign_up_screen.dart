@@ -328,7 +328,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
 
     if (imageUrl == null) {
-      showsnakBar(context, 'Failed to upload image', false);
+      showSnackBar(context, 'Failed to upload image', false);
     }
 
     setState(() => _isImageUploading = false);
@@ -359,7 +359,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         bloodGroup: _bloodGroup!,
         photoUrl: _imageUrl??'',
         donor: _isDonor,
-        // fcmToken: fcm??'',
+        fcmToken: [fcm!],
 
       );
 
@@ -371,15 +371,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
           .set({...user.toFirestore(),'fcm_token':FieldValue.arrayUnion([fcm])});
 
       SignUpScreen.emailSent = true;
-      showsnakBar(context, "Account created! Please verify your email before login.", false);
+      showSnackBar(context, "Account created! Please verify your email before login.", false);
 
       await FirebaseAuth.instance.signOut();
       Navigator.pushReplacementNamed(context, Signinscreen.name);
 
     } on FirebaseAuthException catch (e) {
-      showsnakBar(context, e.message ?? 'Sign up failed', false);
+      showSnackBar(context, e.message ?? 'Sign up failed', false);
     } catch (e) {
-      showsnakBar(context, 'An error occurred. Please try again.', false);
+      showSnackBar(context, 'An error occurred. Please try again.', false);
     } finally {
       setState(() => _isLoading = false);
     }

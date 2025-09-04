@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:nubmed/Widgets/showsnackBar.dart';
 import 'package:nubmed/utils/Color_codes.dart';
+import 'package:nubmed/utils/currentUserInfo.dart';
 
 class AdminMedicinePage extends StatefulWidget {
   const AdminMedicinePage({super.key});
@@ -190,7 +193,7 @@ class _AdminMedicinePageState extends State<AdminMedicinePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _buildDetailRow("Generic Name:", data['genericName']),
-                                _buildDetailRow("Price:", "\$$price"),
+                                _buildDetailRow("Price:", "$price TK"),
                                 _buildDetailRow("Uses:", data['uses']),
                                 _buildDetailRow("Dosage:", data['dosage']),
                                 _buildDetailRow("Side Effects:",
@@ -198,19 +201,46 @@ class _AdminMedicinePageState extends State<AdminMedicinePage> {
                                 _buildDetailRow("Expiry Date:", expiry),
                                 const SizedBox(height: 16),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    OutlinedButton(
-                                      onPressed: () => _addOrEditMedicine(document: doc),
-                                      child: const Text("Edit"),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    OutlinedButton(
-                                      onPressed: () => _deleteMedicine(doc.id),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.red,
+                                    Container(
+                                      child: Row(
+                                        children: [
+                                          OutlinedButton(
+                                            onPressed: () => _addOrEditMedicine(document: doc),
+                                            child: const Text("Edit"),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          OutlinedButton(
+                                            onPressed: () => _deleteMedicine(doc.id),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: Colors.red,
+                                            ),
+                                            child: const Text("Delete"),
+                                          ),
+                                        ],
                                       ),
-                                      child: const Text("Delete"),
+                                    ),
+                                    Container(
+                                      child: Row(
+                                        children: [
+                                          OutlinedButton(
+                                            onPressed: () => _sellMedicine(doc.id, stock),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: Colors.green,
+                                            ),
+                                            child: const Text("Sell"),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          OutlinedButton(
+                                            onPressed: () => _updateStock(doc.id,stock),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: Colors.green,
+                                            ),
+                                            child: const Text("Update Stock"),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -409,5 +439,209 @@ class _AdminMedicinePageState extends State<AdminMedicinePage> {
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
+  }
+
+  Future<void> _sellMedicine(String id,int currentStock)async{
+    TextEditingController _stockController = TextEditingController();
+    showDialog(context: context, builder: (context){
+      return AlertDialog(
+        title: Text("Enter Amount"),
+        content: TextField(
+          controller: _stockController,
+          decoration: InputDecoration(
+            hintText: "amount"
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: (){
+            Navigator.pop(context);
+          }, child: Text("Cancel")),
+          TextButton(onPressed: ()async{
+
+            int toBeSold = int.parse(_stockController.text);
+
+            if(currentStock < toBeSold){
+              showSnackBar(context, "Insufficient Stock", true);
+              Navigator.pop(context);
+              return;
+            }
+
+            num newStock = currentStock - toBeSold;
+
+            await FirebaseFirestore.instance.collection('medicines').doc(id).update(
+              {
+                'stock':newStock
+              }
+            );
+            _refreshData();
+            showSnackBar(context, "${toBeSold}", false);
+            Navigator.pop(context);
+          }, child: Text("Submit")),
+        ],
+      );
+    });
+  }
+  Future<void> _updateStock(String id, int currentStock) async {
+    final stockController = TextEditingController();
+    final reasonController = TextEditingController();
+    final isAddingController = ValueNotifier<bool>(true); // true = add, false = remove
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Update Stock"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Toggle between Add/Remove
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ChoiceChip(
+                    label: const Text("Add Stock"),
+                    selected: isAddingController.value,
+                    onSelected: (selected) => isAddingController.value = true,
+                  ),
+                  const SizedBox(width: 16),
+                  ChoiceChip(
+                    label: const Text("Remove Stock"),
+                    selected: !isAddingController.value,
+                    onSelected: (selected) => isAddingController.value = false,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Current Stock Info
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Current Stock:", style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text("$currentStock", style: const TextStyle(fontSize: 16)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Amount Input
+              TextField(
+                controller: stockController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Amount",
+                  border: OutlineInputBorder(),
+                  suffixText: "units",
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Reason Input
+              TextField(
+                controller: reasonController,
+                decoration: const InputDecoration(
+                  labelText: "Reason (optional)",
+                  border: OutlineInputBorder(),
+                  hintText: "e.g., New shipment, Damaged goods, etc.",
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: isAddingController,
+            builder: (context, isAdding, child) {
+              return FilledButton(
+                onPressed: () async {
+                  final amountText = stockController.text.trim();
+                  if (amountText.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter an amount')),
+                    );
+                    return;
+                  }
+
+                  final amount = int.tryParse(amountText) ?? 0;
+                  if (amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter a valid amount')),
+                    );
+                    return;
+                  }
+
+                  int newStock;
+                  String actionType;
+
+                  if (isAdding) {
+                    newStock = currentStock + amount;
+                    actionType = 'stock_added';
+                  } else {
+                    if (amount > currentStock) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Cannot remove more than current stock')),
+                      );
+                      return;
+                    }
+                    newStock = currentStock - amount;
+                    actionType = 'stock_removed';
+                  }
+
+                  try {
+                    // Update stock in Firestore
+                    await FirebaseFirestore.instance.collection('medicines').doc(id).update({
+                      'stock': newStock,
+                      'lastUpdated': FieldValue.serverTimestamp(),
+                    });
+
+                    // Add to stock history
+                    await FirebaseFirestore.instance.collection('stockHistory').add({
+                      'medicineId': id,
+                      'action': actionType,
+                      'amount': amount,
+                      'previousStock': currentStock,
+                      'newStock': newStock,
+                      'reason': reasonController.text.trim(),
+                      'timestamp': FieldValue.serverTimestamp(),
+                      'performedBy': CurrentUserInfo.uid,
+                    });
+
+                    Navigator.pop(context);
+                    _refreshData();
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isAdding
+                              ? 'Added $amount units to stock'
+                              : 'Removed $amount units from stock',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ${e.toString()}')),
+                    );
+                  }
+                },
+                child: Text(isAdding ? "Add Stock" : "Remove Stock"),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

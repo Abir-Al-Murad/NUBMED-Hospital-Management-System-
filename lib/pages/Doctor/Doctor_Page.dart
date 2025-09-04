@@ -9,12 +9,12 @@ import 'package:nubmed/Authentication/checkAdmin.dart';
 import 'package:nubmed/Widgets/showsnackBar.dart';
 import 'package:nubmed/model/appointment_model.dart';
 import 'package:nubmed/model/user_model.dart';
-import 'package:nubmed/pages/Doctors_Profile_page.dart';
+import 'package:nubmed/pages/Doctor/Doctors_Profile_page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 import 'package:nubmed/utils/specialization_list.dart';
 
-import '../model/doctor_model.dart';
-import 'Admin_Pages/addOrUpdate_doctor.dart';
+import '../../model/doctor_model.dart';
+import '../Admin_Pages/addOrUpdate_doctor.dart';
 
 class DoctorPage extends StatefulWidget {
   const DoctorPage({super.key});
@@ -417,7 +417,7 @@ class _DoctorPageState extends State<DoctorPage> {
       // Get current user
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        showsnakBar(context, "You must be logged in", true);
+        showSnackBar(context, "You must be logged in", true);
         return;
       }
 
@@ -461,7 +461,7 @@ class _DoctorPageState extends State<DoctorPage> {
           .get();
 
       if (existing.docs.isNotEmpty) {
-        showsnakBar(
+        showSnackBar(
           context,
           "You already have an appointment with this doctor today",
           true,
@@ -516,19 +516,20 @@ class _DoctorPageState extends State<DoctorPage> {
         userStudentId: user.studentId,
         visited: false,
         visitingTime: doctor.visitingTime,
+        prescription: '',
       );
 
       await FirebaseFirestore.instance
           .collection('appointments')
           .add(appointment.toFirestore());
 
-      showsnakBar(
+      showSnackBar(
         context,
         'Appointment booked for ${DateFormat('MMMM d').format(selectedDate)} at ${doctor.visitingTime}',
         false,
       );
     } catch (e) {
-      showsnakBar(context, 'Failed to book appointment: ${e.toString()}', true);
+      showSnackBar(context, 'Failed to book appointment: ${e.toString()}', true);
     }
   }
 }

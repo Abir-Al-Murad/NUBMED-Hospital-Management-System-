@@ -8,19 +8,19 @@ import 'package:nubmed/pages/Admin_Pages/AdminHealthTipsPage.dart';
 import 'package:nubmed/pages/Admin_Pages/AdminMedicine.dart';
 import 'package:nubmed/pages/Admin_Pages/available_doctor_list.dart';
 import 'package:nubmed/pages/Admin_Pages/users_labTest.dart';
-import 'package:nubmed/pages/Blood_HomePage.dart';
-import 'package:nubmed/pages/Details/Appointments_Home.dart';
-import 'package:nubmed/pages/Doctor_Page.dart';
-import 'package:nubmed/pages/LabTestPage.dart';
-import 'package:nubmed/pages/emergency.dart';
-import 'package:nubmed/pages/health_tips.dart';
-import 'package:nubmed/pages/medicine_page.dart';
-import 'package:nubmed/pages/support_page.dart';
+import 'package:nubmed/pages/Appointment/Appointments_Home.dart';
+import 'package:nubmed/pages/Blood/Blood_HomePage.dart';
+import 'package:nubmed/pages/Doctor/Doctor_Page.dart';
+import 'package:nubmed/pages/Lab%20Test/LabTestPage.dart';
+import 'package:nubmed/pages/Emergency/emergency.dart';
+import 'package:nubmed/pages/Health%20Tips/health_tips.dart';
+import 'package:nubmed/pages/Medicine/medicine_page.dart';
+import 'package:nubmed/pages/Support/support_page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 import 'package:nubmed/utils/currentUserInfo.dart';
 import 'package:nubmed/utils/pickImage_imgbb.dart';
 
-import 'history_page.dart';
+import 'Report and Prescription/history_page.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -58,7 +58,7 @@ class _HomepageState extends State<Homepage> {
         _isLoading = false;
       });
       if (mounted) {
-        showsnakBar(context, "Failed to load images", true);
+        showSnackBar(context, "Failed to load images", true);
       }
     }
   }
@@ -101,11 +101,11 @@ class _HomepageState extends State<Homepage> {
         await _fetchSliderImages();
 
         if (mounted) {
-          showsnakBar(context, "Image deleted successfully", false);
+          showSnackBar(context, "Image deleted successfully", false);
         }
       } catch (e) {
         if (mounted) {
-          showsnakBar(context, "Failed to delete image: ${e.toString()}", true);
+          showSnackBar(context, "Failed to delete image: ${e.toString()}", true);
         }
       } finally {
         if (mounted) {
@@ -121,13 +121,13 @@ class _HomepageState extends State<Homepage> {
     final pickedImage = await ImgBBImagePicker.pickImage();
     if (pickedImage == null) {
       if (mounted) {
-        showsnakBar(context, 'No image selected', false);
+        showSnackBar(context, 'No image selected', false);
       }
       return;
     }
 
     if (mounted) {
-      showsnakBar(context, 'Uploading image...', true);
+      showSnackBar(context, 'Uploading image...', true);
     }
 
     try {
@@ -143,12 +143,12 @@ class _HomepageState extends State<Homepage> {
         });
         await _fetchSliderImages();
         if (mounted) {
-          showsnakBar(context, 'Image uploaded successfully', false);
+          showSnackBar(context, 'Image uploaded successfully', false);
         }
       }
     } catch (e) {
       if (mounted) {
-        showsnakBar(context, "Failed to upload image: ${e.toString()}", true);
+        showSnackBar(context, "Failed to upload image: ${e.toString()}", true);
       }
     }
   }
@@ -392,8 +392,8 @@ class _HomepageState extends State<Homepage> {
                     },
                   ),
                   buildGridItem(
-                    icon: Icons.history_edu,
-                    label: "History",
+                    icon: Icons.folder_copy,
+                    label: "Reports & Prescriptions",
                     color: Colors.blueGrey,
                     onTap: () {
                       Navigator.push(
@@ -426,9 +426,13 @@ class _HomepageState extends State<Homepage> {
                             context, AvailableDoctorList.name);
                       },
                     ),
-                  buildGridItem(icon: Icons.biotech, label: 'Patient Lab Test', color: Colors.green, onTap: (){
-                    Navigator.push(context, MaterialPageRoute(builder: (context)=>UsersLabtest()));
-                  })
+                 if(Administrator.isAdminUser ||
+                     Administrator.isModeratorUser)
+                   buildGridItem(icon: Icons.biotech, label: 'Patient Lab Test', color: Colors.green, onTap: (){
+                     Navigator.push(context, MaterialPageRoute(builder: (context)=>UsersLabtest()));
+                   }
+                   ),
+
                 ],
               ),
             ],

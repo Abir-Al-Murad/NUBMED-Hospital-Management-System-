@@ -1,10 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:nubmed/Authentication/checkAdmin.dart';
 import 'package:nubmed/model/user_model.dart';
 import 'package:nubmed/pages/Details/user_details_page.dart';
 import 'package:nubmed/utils/Color_codes.dart';

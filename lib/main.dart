@@ -1,7 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,11 +12,11 @@ import 'package:nubmed/pages/Admin_Pages/AdminMedicine.dart';
 import 'package:nubmed/pages/Admin_Pages/addOrUpdate_doctor.dart';
 
 import 'package:nubmed/pages/Admin_Pages/available_doctor_list.dart';
-import 'package:nubmed/pages/Doctor_Page.dart';
+import 'package:nubmed/pages/Doctor/Doctor_Page.dart';
 import 'package:nubmed/pages/HomePage.dart';
-import 'package:nubmed/pages/emergency.dart';
-import 'package:nubmed/pages/health_tips.dart';
-import 'package:nubmed/pages/medicine_page.dart';
+import 'package:nubmed/pages/Emergency/emergency.dart';
+import 'package:nubmed/pages/Health%20Tips/health_tips.dart';
+import 'package:nubmed/pages/Medicine/medicine_page.dart';
 import 'package:nubmed/splash_screen.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 import 'package:nubmed/utils/fcm_service.dart';

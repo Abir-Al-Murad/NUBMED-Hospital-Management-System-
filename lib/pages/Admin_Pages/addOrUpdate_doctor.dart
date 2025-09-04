@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:nubmed/Widgets/normalTitle.dart';
 import 'package:nubmed/Widgets/showsnackBar.dart';
-import 'package:nubmed/pages/Doctor_Page.dart';
+import 'package:nubmed/pages/Doctor/Doctor_Page.dart';
 import 'package:nubmed/utils/Color_codes.dart';
 import 'package:nubmed/utils/gender.dart';
 import 'package:nubmed/utils/pickImage_imgbb.dart';
@@ -423,7 +423,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
             .delete();
 
         if (mounted) {
-          showsnakBar(context, "${doctor.name} deleted", false);
+          showSnackBar(context, "${doctor.name} deleted", false);
           Navigator.pushNamedAndRemoveUntil(
             context,
             DoctorPage.name,
@@ -432,7 +432,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
         }
       } catch (e) {
         if (mounted) {
-          showsnakBar(context, "Delete failed: ${e.toString()}", true);
+          showSnackBar(context, "Delete failed: ${e.toString()}", true);
         }
       }
     }
@@ -456,19 +456,19 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
   void _saveForm() {
     if (_formKey.currentState!.validate()) {
       if (selectedDays.isEmpty) {
-        showsnakBar(context, "Please select at least one visiting day", true);
+        showSnackBar(context, "Please select at least one visiting day", true);
         return;
       }
       if (visitingTime == null) {
-        showsnakBar(context, "Please select a visiting time", true);
+        showSnackBar(context, "Please select a visiting time", true);
         return;
       }
       if (selectedSpecialization == null) {
-        showsnakBar(context, 'Please select specialization', true);
+        showSnackBar(context, 'Please select specialization', true);
         return;
       }
       if (selectedGender == null) {
-        showsnakBar(context, 'Please select gender', true);
+        showSnackBar(context, 'Please select gender', true);
         return;
       }
       if(widget.doctor == null){
@@ -501,7 +501,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
           .add(doctor.toFirestore());
 
       if (mounted) {
-        showsnakBar(context, "Doctor Saved Successfully!", false);
+        showSnackBar(context, "Doctor Saved Successfully!", false);
         Navigator.pushNamedAndRemoveUntil(
           context,
           DoctorPage.name,
@@ -510,7 +510,7 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
       }
     } on FirebaseException catch (e) {
       if (mounted) {
-        showsnakBar(context, "Error: $e", true);
+        showSnackBar(context, "Error: $e", true);
       }
     }
   }
@@ -544,13 +544,13 @@ class _AddOrUpdateNewDoctorState extends State<AddOrUpdateNewDoctor> {
 
       _loading = false;
       if (mounted) {
-        showsnakBar(context, "Doctor Information Updated Successfully", false);
+        showSnackBar(context, "Doctor Information Updated Successfully", false);
         Navigator.pop(context, updatedDoctor);
       }
     } on FirebaseException catch (e) {
       if (mounted) {
         _loading = false;
-        showsnakBar(context, "Error: $e", true);
+        showSnackBar(context, "Error: $e", true);
       }
     }
   }

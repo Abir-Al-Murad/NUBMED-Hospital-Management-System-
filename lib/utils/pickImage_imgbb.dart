@@ -32,7 +32,7 @@ class ImgBBImagePicker {
       // 1. Validate image size
       final fileSizeKB = (await imageFile.length()) ~/ 1024;
       if (fileSizeKB > 2048) { // 2MB limit
-        showsnakBar(context, 'Image must be under 2MB', false);
+        showSnackBar(context, 'Image must be under 2MB', false);
         return null;
       }
 
@@ -69,7 +69,7 @@ class ImgBBImagePicker {
       return ImgBBResponse.fromJson(jsonData);
     } catch (e, stackTrace) {
       debugPrint('Image upload error: $e\n$stackTrace');
-      showsnakBar(
+      showSnackBar(
         context,
         'Upload failed: ${e is FormatException ? "Invalid image format" : e.toString()}',
         false,
@@ -82,15 +82,15 @@ class ImgBBImagePicker {
     try {
       final response = await http.delete(Uri.parse(deleteUrl));
       if (response.statusCode == 200) {
-        showsnakBar(context, "Image deleted successfully", true);
+        showSnackBar(context, "Image deleted successfully", true);
         return true;
       } else {
         print(response.body);
-        showsnakBar(context, "Failed to delete image: ${response.body}", false);
+        showSnackBar(context, "Failed to delete image: ${response.body}", false);
         return false;
       }
     } catch (e) {
-      showsnakBar(context, "Error deleting image: $e", false);
+      showSnackBar(context, "Error deleting image: $e", false);
       return false;
     }
   }

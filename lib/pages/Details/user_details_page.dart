@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nubmed/model/user_model.dart';
-import 'package:nubmed/pages/chat_screen.dart';
+import 'package:nubmed/pages/Chat/chat_screen.dart';
 
 class UserDetailsPage extends StatefulWidget {
   final medUser user;

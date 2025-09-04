@@ -26,7 +26,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       setState(() => _resetSent = true);
-      showsnakBar(context, 'Password reset link sent to $email', false);
+      showSnackBar(context, 'Password reset link sent to $email', false);
     } on FirebaseAuthException catch (e) {
       String errorMessage;
       switch (e.code) {
@@ -39,7 +39,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
         default:
           errorMessage = 'Error sending reset link: ${e.message}';
       }
-      showsnakBar(context, errorMessage, true);
+      showSnackBar(context, errorMessage, true);
     } finally {
       setState(() => _isLoading = false);
     }

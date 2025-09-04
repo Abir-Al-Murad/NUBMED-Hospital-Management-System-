@@ -10,7 +10,7 @@ class medUser {
   final String phone;
   final String photoUrl;
   final String studentId;
-  // final List<dynamic> fcmToken;
+  final List<String> fcmToken;
 
   medUser({
     required this.id,
@@ -22,7 +22,7 @@ class medUser {
     required this.phone,
     required this.photoUrl,
     required this.studentId,
-    // required this.fcmToken,
+    required this.fcmToken,
   });
 
   factory medUser.fromFirestore(DocumentSnapshot doc) {
@@ -37,7 +37,7 @@ class medUser {
       phone: data['phone'] ?? '',
       photoUrl: data['photo_url'] ?? '',
       studentId: data['student_id'] ?? '',
-      // fcmToken: data['fcm_token']??''
+      fcmToken: data['fcm_token'] !=null? List<String>.from(data['fcm_token']):[]
     );
   }
 
@@ -51,7 +51,7 @@ class medUser {
       'phone': phone,
       'photo_url': photoUrl,
       'student_id': studentId,
-      // 'fcm_token':fcmToken,
+      'fcm_token':fcmToken,
     };
   }
   factory medUser.fromMap(Map<String, dynamic> data, String id) {
@@ -65,7 +65,9 @@ class medUser {
       phone: data['phone'] ?? '',
       photoUrl: data['photo_url'] ?? '',
       studentId: data['student_id'] ?? '',
-      // fcmToken: data['fcm_token'] ?? '',
+      fcmToken: data['fcmTokens'] != null
+          ? List<String>.from(data['fcmTokens'])
+          : [],
     );
   }
 

@@ -1,25 +1,45 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_cloud_firestore/firebase_cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nubmed/Authentication/Sign_in.dart';
 import 'package:nubmed/Widgets/showsnackBar.dart';
-import 'package:nubmed/model/user_model.dart';
 import 'package:nubmed/utils/pickImage_imgbb.dart';
-import 'package:nubmed/providers/user_provider.dart';
 
-class Profile extends ConsumerStatefulWidget {
+class Profile extends StatefulWidget {
   const Profile({super.key});
 
   @override
-  ConsumerState<Profile> createState() => _ProfileState();
+  State<Profile> createState() => _ProfileState();
 }
 
-class _ProfileState extends ConsumerState<Profile> {
+class _ProfileState extends State<Profile> {
   bool _isUploading = false;
   String? _tempImageUrl;
+  Map<String, dynamic>? _userData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .get();
+
+    if (snapshot.exists) {
+      setState(() {
+        _userData = snapshot.data();
+      });
+    }
+  }
 
   Future<void> _handleImageUpload() async {
     String? imageUrl;
@@ -32,18 +52,24 @@ class _ProfileState extends ConsumerState<Profile> {
         imageFile: pickedImage,
         context: context,
       );
-      imageUrl = response!.imageUrl;
+      imageUrl = response?.imageUrl;
 
       if (imageUrl != null) {
-        await ref.read(profileUpdateProvider.notifier).updateProfile(
-          photoUrl: imageUrl,
-        );
-        setState(() => _tempImageUrl = imageUrl);
+        final user = FirebaseAuth.instance.currentUser;
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(user!.uid)
+            .update({"photoUrl": imageUrl});
+
+        setState(() {
+          _tempImageUrl = imageUrl;
+          _userData?["photoUrl"] = imageUrl;
+        });
       } else {
-        showsnakBar(context, 'Failed to upload image', false);
+        showSnackBar(context, 'Failed to upload image', false);
       }
     } catch (e) {
-      showsnakBar(context, 'Error: ${e.toString()}', false);
+      showSnackBar(context, 'Error: ${e.toString()}', false);
     } finally {
       setState(() => _isUploading = false);
     }
@@ -51,8 +77,13 @@ class _ProfileState extends ConsumerState<Profile> {
 
   @override
   Widget build(BuildContext context) {
-    final userAsync = ref.watch(userProvider);
-    final isUpdating = ref.watch(profileUpdateProvider);
+    if (_userData == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final currentImageUrl = _tempImageUrl ?? _userData?["photoUrl"] ?? "";
 
     return Scaffold(
       appBar: AppBar(
@@ -62,161 +93,128 @@ class _ProfileState extends ConsumerState<Profile> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () => _showUpdateDialog(context, userAsync),
+            onPressed: () => _showUpdateDialog(context),
           ),
         ],
       ),
-      body: userAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 50, color: Colors.red),
-              const SizedBox(height: 16),
-              const Text("Failed to load profile data"),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  Signinscreen.name,
-                      (route) => false,
-                ),
-                child: const Text("Sign In"),
-              ),
-            ],
-          ),
-        ),
-        data: (user) {
-          final currentImageUrl = _tempImageUrl ?? user.photoUrl;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // Profile Picture
+            Stack(
+              alignment: Alignment.center,
               children: [
-                // Profile Picture
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).primaryColor,
+                      width: 3,
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: _isUploading
+                        ? const CircularProgressIndicator()
+                        : currentImageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                      imageUrl: currentImageUrl,
                       width: 140,
                       height: 140,
-                      decoration: BoxDecoration(
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                      const CircularProgressIndicator(),
+                      errorWidget: (context, url, error) =>
+                          _buildDefaultAvatar(),
+                    )
+                        : _buildDefaultAvatar(),
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.blue,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).primaryColor,
-                          width: 3,
-                        ),
                       ),
-                      child: ClipOval(
-                        child: _isUploading
-                            ? const CircularProgressIndicator()
-                            : currentImageUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                          imageUrl: currentImageUrl,
-                          width: 140,
-                          height: 140,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                          const CircularProgressIndicator(),
-                          errorWidget: (context, url, error) =>
-                              _buildDefaultAvatar(),
-                        )
-                            : _buildDefaultAvatar(),
-                      ),
+                      child: const Icon(Icons.edit, color: Colors.white),
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: IconButton(
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.edit, color: Colors.white),
-                        ),
-                        onPressed: _isUploading ? null : _handleImageUpload,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // User Info Card
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        _buildInfoRow("Name", user.name),
-                        const Divider(),
-                        _buildInfoRow("Email", user.email),
-                        const Divider(),
-                        _buildInfoRow("Phone", user.phone),
-                        const Divider(),
-                        _buildInfoRow("Student ID", user.studentId),
-                        const Divider(),
-                        _buildInfoRow("Blood Group", user.bloodGroup),
-                        const Divider(),
-                        _buildInfoRow("Location", user.location),
-                        const Divider(),
-                        _buildInfoRow(
-                          "Blood Donor",
-                          user.donor ? 'Yes' : 'No',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Log Out Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.logout),
-                    label: const Text("Log Out"),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () async {
-                      await FirebaseAuth.instance.signOut();
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        Signinscreen.name,
-                            (route) => false,
-                      );
-                    },
+                    onPressed: _isUploading ? null : _handleImageUpload,
                   ),
                 ),
               ],
             ),
-          );
-        },
+            const SizedBox(height: 24),
+
+            // User Info Card
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildInfoRow("Name", _userData?["name"] ?? ""),
+                    const Divider(),
+                    _buildInfoRow("Email", _userData?["email"] ?? ""),
+                    const Divider(),
+                    _buildInfoRow("Phone", _userData?["phone"] ?? ""),
+                    const Divider(),
+                    _buildInfoRow("Student ID", _userData?["studentId"] ?? ""),
+                    const Divider(),
+                    _buildInfoRow("Blood Group", _userData?["bloodGroup"] ?? ""),
+                    const Divider(),
+                    _buildInfoRow("Location", _userData?["location"] ?? ""),
+                    const Divider(),
+                    _buildInfoRow("Blood Donor",
+                        (_userData?["donor"] ?? false) ? "Yes" : "No"),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Log Out Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.logout),
+                label: const Text("Log Out"),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    Signinscreen.name,
+                        (route) => false,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _showUpdateDialog(BuildContext context, AsyncValue<medUser> userAsync) {
-    final phoneController = TextEditingController();
-    final locationController = TextEditingController();
-    final isUpdating = ref.read(profileUpdateProvider);
-    bool isDonor = false;
-
-    userAsync.whenData((user) {
-      phoneController.text = user.phone;
-      locationController.text = user.location;
-      isDonor = user.donor;
-    });
+  void _showUpdateDialog(BuildContext context) {
+    final phoneController =
+    TextEditingController(text: _userData?["phone"] ?? "");
+    final locationController =
+    TextEditingController(text: _userData?["location"] ?? "");
+    bool isDonor = _userData?["donor"] ?? false;
 
     showDialog(
       context: context,
@@ -263,19 +261,26 @@ class _ProfileState extends ConsumerState<Profile> {
                   child: const Text("Cancel"),
                 ),
                 ElevatedButton(
-                  onPressed: isUpdating
-                      ? null
-                      : () async {
-                    await ref.read(profileUpdateProvider.notifier).updateProfile(
-                      phone: phoneController.text,
-                      location: locationController.text,
-                      donor: isDonor,
-                    );
+                  onPressed: () async {
+                    final user = FirebaseAuth.instance.currentUser;
+                    await FirebaseFirestore.instance
+                        .collection("users")
+                        .doc(user!.uid)
+                        .update({
+                      "phone": phoneController.text,
+                      "location": locationController.text,
+                      "donor": isDonor,
+                    });
+
+                    setState(() {
+                      _userData?["phone"] = phoneController.text;
+                      _userData?["location"] = locationController.text;
+                      _userData?["donor"] = isDonor;
+                    });
+
                     if (mounted) Navigator.pop(context);
                   },
-                  child: isUpdating
-                      ? const CircularProgressIndicator()
-                      : const Text("Update"),
+                  child: const Text("Update"),
                 ),
               ],
             );

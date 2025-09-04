@@ -205,7 +205,6 @@ class _YourLabTestPageState extends State<YourLabTestPage> {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () async{
-                                    print(test.labID);
                                     final list = await FirebaseFirestore.instance.collection("usersLabTest").get();
                                     final doc = list.docs;
                                     for(QueryDocumentSnapshot d in doc){
@@ -236,24 +235,6 @@ class _YourLabTestPageState extends State<YourLabTestPage> {
                             ],
                           ),
 
-                          if (test.isDone) SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                // Add view report functionality
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              icon: const Icon(Icons.download, size: 20),
-                              label: const Text("Download Report"),
-                            ),
-                          ),
                         ],
                       ),
                     ),

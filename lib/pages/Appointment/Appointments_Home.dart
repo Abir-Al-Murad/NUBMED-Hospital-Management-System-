@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nubmed/pages/AppoinmentPage.dart';
-import 'package:nubmed/pages/your_lab_test_page.dart';
+import 'package:nubmed/pages/Appointment/AppoinmentPage.dart';
+import 'package:nubmed/pages/Lab%20Test/your_lab_test_page.dart';
 import 'package:nubmed/utils/currentUserInfo.dart';
 
 class AppointmentsHomePage extends StatelessWidget {

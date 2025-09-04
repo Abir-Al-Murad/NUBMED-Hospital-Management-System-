@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UsersLabtestModel {
   final String labID;
   final String testName;
+  final String report;
   final double testPrice;
   final String userId;   // only userId rakho
   final int serial;
@@ -17,6 +18,7 @@ class UsersLabtestModel {
     required this.serial,
     required this.isDone,
     required this.timestamp,
+    required this.report,
   });
 
   factory UsersLabtestModel.fromFirestore(DocumentSnapshot doc) {
@@ -30,6 +32,7 @@ class UsersLabtestModel {
       serial: data['serial'] ?? 0,
       isDone: data['isDone'] ?? false,
       timestamp: (data['timestamp'] as Timestamp).toDate(),
+      report: data['report'] ??'',
     );
   }
 
@@ -41,6 +44,7 @@ class UsersLabtestModel {
       'serial': serial,
       'isDone': isDone,
       'timestamp': Timestamp.fromDate(timestamp),
+      'report':report,
     };
   }
 }

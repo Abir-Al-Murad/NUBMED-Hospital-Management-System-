@@ -213,9 +213,9 @@ class _LabTestEditPageState extends State<LabTestEditPage> {
                 .update(data.toFirestore());
       future.then((_){
         Navigator.pop(context,true);
-        showsnakBar(context, "Updated successfully", false);
+        showSnackBar(context, "Updated successfully", false);
       }).catchError((error){
-        showsnakBar(context, 'Error: $error', true);
+        showSnackBar(context, 'Error: $error', true);
       });
     }
   }

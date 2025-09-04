@@ -13,6 +13,7 @@ class Appointment {
   final DateTime timestamp;
   final String userId;
   final String userName;
+  final String prescription;
   final String userPhone; // Added field
   final String userStudentId; // Added field
   final bool visited;
@@ -35,6 +36,7 @@ class Appointment {
     required this.userStudentId,
     required this.visited,
     required this.visitingTime,
+    required this.prescription,
   });
 
   factory Appointment.fromFirestore(DocumentSnapshot doc) {
@@ -57,6 +59,7 @@ class Appointment {
       userStudentId: data['userStudentId'] ?? '',
       visited: data['visited'] ?? false,
       visitingTime: data['visitingTime'] ?? '',
+      prescription: data['prescription']??'',
     );
   }
 
@@ -76,6 +79,7 @@ class Appointment {
       'userStudentId': userStudentId,
       'visited': visited,
       'visitingTime': visitingTime,
+      'prescription':prescription,
     };
   }
 

@@ -165,7 +165,7 @@ class _SigninscreenState extends State<Signinscreen> {
         if(!user.emailVerified){
           user.sendEmailVerification();
           await FirebaseAuth.instance.signOut();
-          showsnakBar(context, "Please verify your email before signing in", true);
+          showSnackBar(context, "Please verify your email before signing in", true);
           setState(() {
             isLoading = false;
           });
@@ -177,7 +177,7 @@ class _SigninscreenState extends State<Signinscreen> {
         setState(() {
           isLoading = false;
         });
-        showsnakBar(context, "Login Failed", true);
+        showSnackBar(context, "Login Failed", true);
       }
     }else{
       setState(() {
