@@ -93,7 +93,7 @@ NUBMED is a **Flutter-based Hospital Management System** designed for university
 
 1. **📂 Clone the repository**
    ```bash
-   git clone https://github.com/Abir-Al-Murad/NUBMED.git
+   git clone https://github.com/Abir-Al-Murad/NUBMED-Hospital-Management-System-.git
    ```
 
 2. **📁 Navigate to project directory**
@@ -226,7 +226,7 @@ We welcome contributions! Please feel free to submit pull requests or open issue
 For support, bug reports, or feature requests:
 
 - 📧 **Email:** [abiralmuradnub@gmail.com](mailto:abiralmuradnub@gmail.com)
-- 🐛 **GitHub Issues:** [Create an issue](https://github.com/Abir-Al-Murad/NUBMED/issues)
+- 🐛 **GitHub Issues:** [Create an issue](https://github.com/Abir-Al-Murad/NUBMED-Hospital-Management-System-/issues)
 - 💬 **Discord:** Join our community (Link coming soon)
 
 ---
@@ -271,19 +271,20 @@ This project is licensed under the **MIT License** - see the [LICENSE.md](LICENS
 
 If you find this project useful, please consider giving it a star!
 
-[![GitHub stars](https://img.shields.io/github/stars/Abir-Al-Murad/NUBMED?style=social)](https://github.com/Abir-Al-Murad/NUBMED/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/Abir-Al-Murad/NUBMED-Hospital-Management-System-?style=social)](https://github.com/Abir-Al-Murad/NUBMED-Hospital-Management-System-/stargazers)
 
 ---
 
 ## 📈 Project Stats
 
-![GitHub repo size](https://img.shields.io/github/repo-size/Abir-Al-Murad/NUBMED)
-![GitHub last commit](https://img.shields.io/github/last-commit/Abir-Al-Murad/NUBMED)
-![GitHub issues](https://img.shields.io/github/issues/Abir-Al-Murad/NUBMED)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/Abir-Al-Murad/NUBMED)
+![GitHub repo size](https://img.shields.io/github/repo-size/Abir-Al-Murad/NUBMED-Hospital-Management-System-)
+![GitHub last commit](https://img.shields.io/github/last-commit/Abir-Al-Murad/NUBMED-Hospital-Management-System-)
+![GitHub issues](https://img.shields.io/github/issues/Abir-Al-Murad/NUBMED-Hospital-Management-System-)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/Abir-Al-Murad/NUBMED-Hospital-Management-System-)
 
 ---
 
 **Last Updated:** September 2025 | **Version:** 1.1.2
 
 *Made with ❤️ by [Abir Al Murad](https://github.com/Abir-Al-Murad)*
+
