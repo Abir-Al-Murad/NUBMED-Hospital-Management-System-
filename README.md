@@ -6,9 +6,9 @@ NUBMED is a **Flutter-based Hospital Management System** designed for university
 
 ## 📱 Download App Now
 
-[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android)](https://drive.google.com/uc?export=download&id=12Uc3viyzegINzTetRQ01q4jflem6X_w6)
+[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android)](https://drive.google.com/uc?export=download&id=1XxcFlNhEtKcdfh54sbx26gWe2LzfXlUe)
 
-**Latest Version:** v1.2.0 | **Size:** ~61MB | **Updated:** December 2023
+**Latest Version:** v1.1.2 | **Size:** ~61MB | **Updated:** December 2025
 
 ### System Requirements:
 - Android 8.0 (API level 26) or higher
@@ -203,7 +203,7 @@ lib/
 
 ## 📱 Screenshots
 
-*Add your app screenshots here to showcase the UI and features*
+<img src="assets/NUBMED_Banner.jpg" width="300" />
 
 ---
 
@@ -287,4 +287,5 @@ If you find this project useful, please consider giving it a star!
 **Last Updated:** September 2025 | **Version:** 1.1.2
 
 *Made with ❤️ by [Abir Al Murad](https://github.com/Abir-Al-Murad)*
+
 
